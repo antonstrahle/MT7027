@@ -1,0 +1,19 @@
+---
+title: "Project1"
+output: pdf_document
+---
+
+
+```{r echo = FALSE, warning = FALSE}
+
+library(tidyverse)
+library(knitr)
+
+data <- read.delim2("Projekt1_Grupp9.txt", sep = ";")
+
+type1Data <- data %>% filter(ClaimType == 1)
+
+type2Data <- data %>% filter(ClaimType == 2)
+
+```
+
