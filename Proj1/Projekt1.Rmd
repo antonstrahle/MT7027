@@ -17,3 +17,50 @@ type2Data <- data %>% filter(ClaimType == 2)
 
 ```
 
+
+Assume 365 day/year and a month is 365/12 days (to get 12 months). 
+
+
+```{r echo = FALSE, warning = FALSE}
+# type1Data %>% 
+#   ggplot(aes(ClaimDay)) +
+#   geom_histogram(breaks= 1:120)
+# 
+# type2Data %>% 
+#   ggplot(aes(ClaimDay)) +
+#   geom_histogram(breaks= 1:120)
+
+#We can see seasonal effects
+# type2Data %>% 
+#   mutate(ClaimDay = (ClaimDay-1) %% 365 + 1) %>% 
+#   mutate(month = floor((.$ClaimDay-1)/(365/12)) + 1) %>% 
+#   ggplot(aes(month)) +
+#   geom_bar() +
+#   scale_x_continuous(breaks=c(1:12)) +
+#   theme_classic()
+
+data <- data %>% 
+  mutate(ClaimDay = (ClaimDay-1) %% 365 + 1) %>% 
+  mutate(Month = floor((.$ClaimDay-1)/(365/12)) + 1) 
+
+#We can see seasonal effects
+data %>% 
+  ggplot(aes(Month)) +
+  geom_bar() +
+  scale_x_continuous(breaks=c(1:12)) +
+  theme_classic() +
+  facet_wrap(~ ClaimType, 
+             labeller = labeller(ClaimType = c("1" = "Type 1", "2" = "Type 2")))
+
+
+data <- data %>% mutate(Season = ifelse(Month %in% 5:8, 2, 1))
+
+#May be needed later
+data %>% group_by(ClaimType, ClaimDay, Month, Season) %>% 
+  summarise(NumberOfClaims=n(), AggregatedCost = sum(ClaimCost))
+```
+
+
+Reasonable to divide the months into two homogenous groups with their own process. One group for months $(1-4, 1-12)$ and one for months $(5-8)$.
+
+
