@@ -40,9 +40,10 @@ Assume 365 day/year and a month is 365/12 days (to get 12 months).
 #   theme_classic()
 
 data <- data %>% 
+  mutate(Year = floor((.$ClaimDay-1)/(365)) + 1) %>% 
   mutate(ClaimDay = (ClaimDay-1) %% 365 + 1) %>% 
   mutate(Month = floor((.$ClaimDay-1)/(365/12)) + 1) 
-
+data %>% tail()
 #We can see seasonal effects
 data %>% 
   ggplot(aes(Month)) +
@@ -51,16 +52,63 @@ data %>%
   theme_classic() +
   facet_wrap(~ ClaimType, 
              labeller = labeller(ClaimType = c("1" = "Type 1", "2" = "Type 2")))
+```
+
+Reasonable to divide the months into two homogenous groups with their own process. One group for months $(1-4, 1-12)$ and one for months $(5-8)$.
+
+```{r echo = FALSE, warning = FALSE}
+#No effect over year for each claim type
+data %>% 
+  filter(ClaimType == 1) %>% 
+  ggplot(aes(Month)) +
+  geom_bar() +
+  scale_x_continuous(breaks=c(1:12)) +
+  theme_classic() +
+  facet_wrap(~ Year, 
+             labeller = labeller(ClaimType = c("1" = "Type 1", "2" = "Type 2")))
+
+data %>% 
+  filter(ClaimType == 2) %>% 
+  ggplot(aes(Month)) +
+  geom_bar() +
+  scale_x_continuous(breaks=c(1:12)) +
+  theme_classic() +
+  facet_wrap(~ Year, 
+             labeller = labeller(ClaimType = c("1" = "Type 1", "2" = "Type 2")))
 
 
+#Add season, 2=summer, 1=else
 data <- data %>% mutate(Season = ifelse(Month %in% 5:8, 2, 1))
 
-#May be needed later
-data %>% group_by(ClaimType, ClaimDay, Month, Season) %>% 
+aggregatedData <- data %>% group_by(ClaimType, ClaimDay, Month, Year, Season) %>% 
   summarise(NumberOfClaims=n(), AggregatedCost = sum(ClaimCost))
+
+#Distribution of NumberOfClaims
+aggregatedData %>% 
+  filter(ClaimType == 1) %>% 
+  filter(Season == 1) %>% 
+  ggplot(aes(NumberOfClaims)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))
+
+aggregatedData %>% 
+  filter(ClaimType == 1) %>% 
+  filter(Season == 2) %>% 
+  ggplot(aes(NumberOfClaims)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))
+
+aggregatedData %>% 
+  filter(ClaimType == 2) %>% 
+  filter(Season == 1) %>% 
+  ggplot(aes(NumberOfClaims)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))
+
+aggregatedData %>% 
+  filter(ClaimType == 2) %>% 
+  filter(Season == 2) %>% 
+  ggplot(aes(NumberOfClaims)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))
 ```
 
 
-Reasonable to divide the months into two homogenous groups with their own process. One group for months $(1-4, 1-12)$ and one for months $(5-8)$.
 
 
