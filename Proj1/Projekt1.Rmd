@@ -3,6 +3,7 @@ title: "Project1"
 output: pdf_document
 ---
 
+#1
 
 ```{r echo = FALSE, warning = FALSE}
 
@@ -22,22 +23,6 @@ Assume 365 day/year and a month is 365/12 days (to get 12 months).
 
 
 ```{r echo = FALSE, warning = FALSE}
-# type1Data %>% 
-#   ggplot(aes(ClaimDay)) +
-#   geom_histogram(breaks= 1:120)
-# 
-# type2Data %>% 
-#   ggplot(aes(ClaimDay)) +
-#   geom_histogram(breaks= 1:120)
-
-#We can see seasonal effects
-# type2Data %>% 
-#   mutate(ClaimDay = (ClaimDay-1) %% 365 + 1) %>% 
-#   mutate(month = floor((.$ClaimDay-1)/(365/12)) + 1) %>% 
-#   ggplot(aes(month)) +
-#   geom_bar() +
-#   scale_x_continuous(breaks=c(1:12)) +
-#   theme_classic()
 
 data <- data %>% 
   mutate(Year = floor((.$ClaimDay-1)/(365)) + 1) %>% 
@@ -107,6 +92,51 @@ aggregatedData %>%
   filter(Season == 2) %>% 
   ggplot(aes(NumberOfClaims)) +
   geom_bar(aes(y = (..count..)/sum(..count..)))
+```
+
+
+#2
+
+```{r echo = FALSE ,warning = FALSE, message = FALSE}
+
+data %>% 
+  group_by(ClaimType, Month)  %>% 
+  summarize(MeanClaim = mean(ClaimCost)) %>% 
+  filter(ClaimType == 1) %>% 
+  ggplot(aes(x = Month, y = MeanClaim)) +
+    geom_point()
+
+data %>% 
+  group_by(ClaimType, Month)  %>% 
+  summarize(MeanClaim = mean(ClaimCost)) %>% 
+  filter(ClaimType == 2) %>% 
+  ggplot(aes(x = Month, y = MeanClaim)) +
+    geom_point()
+
+```
+
+It seems as if the avergae claim costs are time independent, atleast when aggregated on a monthly basis, from the two previous plots.
+
+#3 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+t1Counts <- type1Data %>% 
+  group_by(ClaimDay) %>% 
+  summarize(Counts = n())
+
+t2Counts <- type2Data %>% 
+  group_by(ClaimDay) %>% 
+  summarize(Counts = n()) 
+
+aggClaims <- inner_join(t1Counts, t2Counts, by = "ClaimDay")
+
+plot(aggClaims$Counts.x, aggClaims$Counts.y)
+
+cor(aggClaims$Counts.x, aggClaims$Counts.y)
+
+#There does seem to be daily correlation in the number of claims which we obviously have to deal with in one way or another
+
 ```
 
 
