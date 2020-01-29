@@ -117,6 +117,34 @@ data %>%
 
 It seems as if the avergae claim costs are time independent, atleast when aggregated on a monthly basis, from the two previous plots.
 
+```{r echo = FALSE ,warning = FALSE, message = FALSE}
+#MeanClaim per day over time, ClaimType 1
+data %>% 
+  group_by(ClaimType, Year, ClaimDay)  %>% 
+  summarize(MeanClaim = mean(ClaimCost)) %>% 
+  filter(ClaimType == 1) %>% 
+  ggplot(aes(x = ClaimDay, y = MeanClaim)) +
+    geom_point()
+
+#MeanClaim per day over time, ClaimType 2
+data %>% 
+  group_by(ClaimType, Year, ClaimDay)  %>% 
+  summarize(MeanClaim = mean(ClaimCost)) %>% 
+  filter(ClaimType == 2) %>% 
+  ggplot(aes(x = ClaimDay, y = MeanClaim)) +
+    geom_point()
+
+#MeanClaim per season for each ClaimTpe
+data %>% 
+  group_by(ClaimType, Season)  %>% 
+  summarize(MeanClaim = mean(ClaimCost)) %>% 
+  ggplot(aes(x = Season, y = MeanClaim, fill=ClaimType %>% as.factor())) +
+    scale_fill_discrete(name = "Claimtype") +
+    geom_col()
+```
+
+The most extreme claims of claimtype 1 seem to occure during the summer. The average claimcost however does not differ between the seasons.
+
 #3 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
