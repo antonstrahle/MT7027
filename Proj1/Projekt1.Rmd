@@ -6,9 +6,19 @@ output: pdf_document
 #1
 
 ```{r echo = FALSE, warning = FALSE}
-
 library(tidyverse)
 library(knitr)
+
+#standard theme
+#theme_set(theme_gray())
+
+### Use this to make it look like base R
+theme_set(theme_bw())
+theme_update(text = element_text(size=12),
+panel.grid.major = element_blank(),
+panel.grid.minor = element_blank(),
+strip.background = element_blank()
+)
 
 data <- read.delim2("Projekt1_Grupp9.txt", sep = ";")
 
@@ -68,30 +78,39 @@ data <- data %>% mutate(Season = ifelse(Month %in% 5:8, 2, 1))
 aggregatedData <- data %>% group_by(ClaimType, ClaimDay, Month, Year, Season) %>% 
   summarise(NumberOfClaims=n(), AggregatedCost = sum(ClaimCost))
 
-#Distribution of NumberOfClaims
+#Distribution of NumberOfClaims and fitted poisson as points
+estimatedLambda <- (aggregatedData %>% 
+  group_by(ClaimType, Season) %>% 
+  summarize(lambda = mean(NumberOfClaims)))$lambda
+
+
 aggregatedData %>% 
   filter(ClaimType == 1) %>% 
   filter(Season == 1) %>% 
-  ggplot(aes(NumberOfClaims)) +
-  geom_bar(aes(y = (..count..)/sum(..count..)))
+  ggplot() +
+  geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
+  geom_point(data = data.frame(x=c(0:35)), aes(x=x, y=dpois(x, estimatedLambda[1])))
 
 aggregatedData %>% 
   filter(ClaimType == 1) %>% 
   filter(Season == 2) %>% 
-  ggplot(aes(NumberOfClaims)) +
-  geom_bar(aes(y = (..count..)/sum(..count..)))
+  ggplot() +
+  geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
+  geom_point(data = data.frame(x=c(0:17)), aes(x=x, y=dpois(x, estimatedLambda[2])))
 
 aggregatedData %>% 
   filter(ClaimType == 2) %>% 
   filter(Season == 1) %>% 
-  ggplot(aes(NumberOfClaims)) +
-  geom_bar(aes(y = (..count..)/sum(..count..)))
+  ggplot() +
+  geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
+  geom_point(data = data.frame(x=c(0:20)), aes(x=x, y=dpois(x, estimatedLambda[3])))
 
 aggregatedData %>% 
   filter(ClaimType == 2) %>% 
   filter(Season == 2) %>% 
-  ggplot(aes(NumberOfClaims)) +
-  geom_bar(aes(y = (..count..)/sum(..count..)))
+  ggplot() +
+  geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
+  geom_point(data = data.frame(x=c(0:10)), aes(x=x, y=dpois(x, estimatedLambda[4])))
 ```
 
 
