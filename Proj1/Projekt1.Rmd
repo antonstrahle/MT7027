@@ -186,6 +186,66 @@ cor(aggClaims$Counts.x, aggClaims$Counts.y)
 
 ```
 
+```{r echo = FALSE, message = FALSE}
+
+type1Data %>% 
+  group_by(ClaimDay) %>% 
+  summarize(Counts = n(), MeanClaim = mean(ClaimCost)) %>% 
+  group_by(Counts) %>% 
+  summarize(MeanClaim = mean(MeanClaim)) %>% 
+  ggplot(aes(x = Counts, y = MeanClaim)) +
+    geom_point()
+
+#Seems somewhat indep
+
+type2Data %>% 
+  group_by(ClaimDay) %>% 
+  summarize(Counts = n(), MeanClaim = mean(ClaimCost)) %>% 
+  group_by(Counts) %>% 
+  summarize(MeanClaim = mean(MeanClaim)) %>% 
+  ggplot(aes(x = Counts, y = MeanClaim)) +
+    geom_point()
+
+#Maybe not, idk
+
+#Independent modelling anyways.
+
+sampleD <- data %>% 
+  group_by(Year, Month, Season) %>% 
+  summarize(n1 = sum(ClaimType == 1), n2 = sum(ClaimType == 2)) 
+
+s1 <- sampleD %>%
+  data.frame() %>% 
+  filter(Season == 1) %>% 
+  sample_n(size = 8,replace = TRUE)
+
+s2 <- sampleD %>%
+  data.frame() %>% 
+  filter(Season == 2) %>% 
+  sample_n(size = 4,replace = TRUE)
+
+claims <- rbind(s1[1:4,],s2, s1[5:8,]) %>% 
+  select(n1, n2) 
+
+costs <- data.frame(matrix(ncol = 2, nrow = 0)) 
+
+#Ful loop IK men är trött och orkar ej googla
+
+for(i in 1:nrow(bsSample)){
+  
+  TC1 = sum(sample(data[data$ClaimType == 1,]$ClaimCost, claims$n1[i], replace = TRUE))
+  TC2 = sum(sample(data[data$ClaimType == 2,]$ClaimCost, claims$n2[i], replace = TRUE))
+  
+  costs <- rbind(costs, c(TC1, TC2)) %>% 
+    setNames(c("c1", "c2"))
+  
+}
+
+bsSample <- cbind(claims, costs) 
+
+```
+
+
 
 
 
