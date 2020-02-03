@@ -1,13 +1,21 @@
 ---
-title: "Project1"
+title: "MT7027: Project 1"
+author: "Anton Stråhle, Jan Alexandersson & Max Sjödin"
 output: pdf_document
 ---
 
-#1
+#Introduction
+
+In this project we are dealing with data concerning two different insurance branches collected over 10 years. We do not know anything about the sizes of the two insurance portfolios except the fact that their size has not changed over the decade which the data spans. Furthermore, the insurance products are of the non-life type and are paid out in lump payments. 
+
+#Exercise 1
+
+In this exercsie we want to find trends in the data for the two insurance branches in order to model future claims in a block-wise manner. Since the data is structured in a way such that we only have the claim day (i.e. $1,2,...,3650$) we assume that 365 day/year and that a month is 365/12 days (to get 12 months). 
 
 ```{r echo = FALSE, warning = FALSE}
-library(tidyverse)
-library(knitr)
+
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(knitr))
 
 #standard theme
 #theme_set(theme_gray())
@@ -28,17 +36,13 @@ type2Data <- data %>% filter(ClaimType == 2)
 
 ```
 
-
-Assume 365 day/year and a month is 365/12 days (to get 12 months). 
-
-
 ```{r echo = FALSE, warning = FALSE}
 
 data <- data %>% 
   mutate(Year = floor((.$ClaimDay-1)/(365)) + 1) %>% 
   mutate(ClaimDay = (ClaimDay-1) %% 365 + 1) %>% 
   mutate(Month = floor((.$ClaimDay-1)/(365/12)) + 1) 
-data %>% tail()
+
 #We can see seasonal effects
 data %>% 
   ggplot(aes(Month)) +
@@ -46,12 +50,13 @@ data %>%
   scale_x_continuous(breaks=c(1:12)) +
   theme_classic() +
   facet_wrap(~ ClaimType, 
-             labeller = labeller(ClaimType = c("1" = "Type 1", "2" = "Type 2")))
+             labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
+  ylab("Count")
 ```
-
-Reasonable to divide the months into two homogenous groups with their own process. One group for months $(1-4, 1-12)$ and one for months $(5-8)$.
+From the previous histograms it seems reasonable to divide the months into two homogenous groups with their own claim processes. One group for months $(1-4, 9-12)$ and one for months $(5-8)$. We also wish to examine if we have homogeneity between the different years during which the claim data was collected.
 
 ```{r echo = FALSE, warning = FALSE}
+
 #No effect over year for each claim type
 data %>% 
   filter(ClaimType == 1) %>% 
@@ -60,7 +65,8 @@ data %>%
   scale_x_continuous(breaks=c(1:12)) +
   theme_classic() +
   facet_wrap(~ Year, 
-             labeller = labeller(ClaimType = c("1" = "Type 1", "2" = "Type 2")))
+             labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
+  ylab("Counts")
 
 data %>% 
   filter(ClaimType == 2) %>% 
@@ -70,11 +76,23 @@ data %>%
   theme_classic() +
   facet_wrap(~ Year, 
              labeller = labeller(ClaimType = c("1" = "Type 1", "2" = "Type 2")))
+  ylab("Counts")
 
+```
+
+We note from the previous plots that there does not seem to be any major difference in the number of claims between the years.
+
+We now wish to fit homogeneous Poisson distributions $N_ij$ (where $i$ represents the insurance type and $j$ represents the season) to the months of each season and each insurance product.
+
+$$
+N_{ij} \sim \text{Po}(\lambda_{ij})
+$$
+
+```{r echo = FALSE, warning = FALSE}
 
 #Add season, 2=summer, 1=else
 data <- data %>% mutate(Season = ifelse(Month %in% 5:8, 2, 1))
-
+   
 aggregatedData <- data %>% group_by(ClaimType, ClaimDay, Month, Year, Season) %>% 
   summarise(NumberOfClaims=n(), AggregatedCost = sum(ClaimCost))
 
@@ -83,38 +101,48 @@ estimatedLambda <- (aggregatedData %>%
   group_by(ClaimType, Season) %>% 
   summarize(lambda = mean(NumberOfClaims)))$lambda
 
-
 aggregatedData %>% 
   filter(ClaimType == 1) %>% 
   filter(Season == 1) %>% 
   ggplot() +
   geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
-  geom_point(data = data.frame(x=c(0:35)), aes(x=x, y=dpois(x, estimatedLambda[1])))
+  geom_line(data = data.frame(x=c(0:35)), aes(x=x, y=dpois(x, estimatedLambda[1]))) +
+  xlab(expression(N[11])) +
+  ylab("Density")
 
 aggregatedData %>% 
   filter(ClaimType == 1) %>% 
   filter(Season == 2) %>% 
   ggplot() +
   geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
-  geom_point(data = data.frame(x=c(0:17)), aes(x=x, y=dpois(x, estimatedLambda[2])))
+  geom_line(data = data.frame(x=c(0:17)), aes(x=x, y=dpois(x, estimatedLambda[2]))) +
+  xlab(expression(N[12])) +
+  ylab("Density")
 
 aggregatedData %>% 
   filter(ClaimType == 2) %>% 
   filter(Season == 1) %>% 
   ggplot() +
   geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
-  geom_point(data = data.frame(x=c(0:20)), aes(x=x, y=dpois(x, estimatedLambda[3])))
+  geom_line(data = data.frame(x=c(0:20)), aes(x=x, y=dpois(x, estimatedLambda[3]))) +
+  xlab(expression(N[21])) +
+  ylab("Density")
 
 aggregatedData %>% 
   filter(ClaimType == 2) %>% 
   filter(Season == 2) %>% 
   ggplot() +
   geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
-  geom_point(data = data.frame(x=c(0:10)), aes(x=x, y=dpois(x, estimatedLambda[4])))
+  geom_line(data = data.frame(x=c(0:10)), aes(x=x, y=dpois(x, estimatedLambda[4]))) +
+  xlab(expression(N[22])) +
+  ylab("Density")
 ```
 
+The Poisson variables which have been fit for the different seasons and insurance branches have had their parameter $\lambda_{ij}$ estimated through maximum-likelihood methods using the data from the 10 previous years. We note that we seem to have overdispersion for $N_{11}$ and $N_{12}$, meaning that the variance is not truly equal to the expectation which is the case for a Poisson variable. For $N_{21}$ and $N_{22}$ date does however seem to indicate that we have underdisperios, meaning that the variance is lower than the expectation. 
 
-#2
+#Exercise 2
+
+It is not only of interset to observe the number of claims over time but to also examine the sizes of these claims. 
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
 
@@ -123,18 +151,20 @@ data %>%
   summarize(MeanClaim = mean(ClaimCost)) %>% 
   filter(ClaimType == 1) %>% 
   ggplot(aes(x = Month, y = MeanClaim)) +
-    geom_point()
+    geom_point() +
+    ylab("Mean Claim")
 
 data %>% 
   group_by(ClaimType, Month)  %>% 
   summarize(MeanClaim = mean(ClaimCost)) %>% 
   filter(ClaimType == 2) %>% 
   ggplot(aes(x = Month, y = MeanClaim)) +
-    geom_point()
+    geom_point() +
+    ylab("Mean Claim")
 
 ```
 
-It seems as if the avergae claim costs are time independent, atleast when aggregated on a monthly basis, from the two previous plots.
+It seems as if the avergae claim costs are time independent, atleast when aggregated on a monthly basis, from the two previous plots. We can also observe the mean of the claim sizes for every day in order to further strengthen the assumption of time independence.
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
 #MeanClaim per day over time, ClaimType 1
@@ -143,7 +173,10 @@ data %>%
   summarize(MeanClaim = mean(ClaimCost)) %>% 
   filter(ClaimType == 1) %>% 
   ggplot(aes(x = ClaimDay, y = MeanClaim)) +
-    geom_point()
+    geom_point() +
+    ylab("Mean Claim") +
+    ggtitle("Branch 1")
+    
 
 #MeanClaim per day over time, ClaimType 2
 data %>% 
@@ -151,20 +184,38 @@ data %>%
   summarize(MeanClaim = mean(ClaimCost)) %>% 
   filter(ClaimType == 2) %>% 
   ggplot(aes(x = ClaimDay, y = MeanClaim)) +
-    geom_point()
+    geom_point()  +
+    ylab("Mean Claim")+
+    ggtitle("Branch 2")
 
 #MeanClaim per season for each ClaimTpe
-data %>% 
-  group_by(ClaimType, Season)  %>% 
-  summarize(MeanClaim = mean(ClaimCost)) %>% 
-  ggplot(aes(x = Season, y = MeanClaim, fill=ClaimType %>% as.factor())) +
-    scale_fill_discrete(name = "Claimtype") +
-    geom_col()
+# data %>% 
+#   group_by(ClaimType, Season)  %>% 
+#   summarize(MeanClaim = mean(ClaimCost)) %>% 
+#   ggplot(aes(x = Season, y = MeanClaim, fill=ClaimType %>% as.factor())) +
+#     scale_fill_discrete(name = "Claimtype") +
+#     geom_col()
 ```
 
-The most extreme claims of claimtype 1 seem to occure during the summer. The average claimcost however does not differ between the seasons.
+We note from the figures that the average claim sizes seem to be time independet. An interesting factor is however that all extremely deviating claim costs seem to occur during the summer (i.e period 2). In conclussion it seems as if the claim costs are independent of time. Another thing that we want to examine is whether or not we have independence between the average claim costs and the number of claims.
 
-#3 
+```{r echo = FALSE ,warning = FALSE, message = FALSE}
+
+data %>% 
+  group_by(Year, Month, ClaimType, Season) %>% 
+  summarize(Counts = n(), Average = mean(ClaimCost)) %>% 
+  ggplot(aes(x = Counts, y = Average)) +
+    geom_point() +
+    facet_wrap(~ClaimType+Season , scales = "free",
+               labeller = label_wrap_gen(multi_line=FALSE)) +
+    ggtitle("Insurance Product, Season")
+
+
+```
+
+We note that we do not seem to have any systematic correlation for any of the combinations of claims and claim costs, meaning that we can model the number of claims and the claim costs independently.
+
+#Exercise 3 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -174,41 +225,33 @@ t1Counts <- type1Data %>%
 
 t2Counts <- type2Data %>% 
   group_by(ClaimDay) %>% 
-  summarize(Counts = n()) 
+  summarize(Counts = n())
 
-aggClaims <- inner_join(t1Counts, t2Counts, by = "ClaimDay")
+aggClaims <- inner_join(t1Counts, t2Counts, by = "ClaimDay") %>% 
+  mutate(Year = floor((.$ClaimDay-1)/(365)) + 1) %>% 
+  mutate(ClaimDay = (ClaimDay-1) %% 365 + 1) %>% 
+  mutate(Month = floor((.$ClaimDay-1)/(365/12)) + 1) %>% 
+  mutate(Season = ifelse(Month %in% 5:8, 2, 1))
+  
 
-plot(aggClaims$Counts.x, aggClaims$Counts.y)
+ggplot(aggClaims, aes(x= Counts.x, y = Counts.y)) +
+  geom_point() +
+  facet_wrap(~Season, scales = "free")
 
-cor(aggClaims$Counts.x, aggClaims$Counts.y)
 
 #There does seem to be daily correlation in the number of claims which we obviously have to deal with in one way or another
 
 ```
 
+We note from the figures above that there seems to be some kind of positive correlation between the two insurance products, meaning that we cannot model the claims for each product separatley, but that we instead have to model the jointly. We can however still model the claim costs of the two branches independently as we saw in the previous exercise.
+
+#Exercise 4
+
+As we mentioned previously the number of claims for the two branches are not independent, meaning that the have to be sampled from a bivariate distribution rather than two univariate distributions. This can be done by either deriving the bivariate distribution analytically and then sampling from it or, as we will do, by using a bootstrap sampler. We begin by sampling the number of claims for each month of the following year from the data of the correct season. 
+
 ```{r echo = FALSE, message = FALSE}
 
-type1Data %>% 
-  group_by(ClaimDay) %>% 
-  summarize(Counts = n(), MeanClaim = mean(ClaimCost)) %>% 
-  group_by(Counts) %>% 
-  summarize(MeanClaim = mean(MeanClaim)) %>% 
-  ggplot(aes(x = Counts, y = MeanClaim)) +
-    geom_point()
-
-#Seems somewhat indep
-
-type2Data %>% 
-  group_by(ClaimDay) %>% 
-  summarize(Counts = n(), MeanClaim = mean(ClaimCost)) %>% 
-  group_by(Counts) %>% 
-  summarize(MeanClaim = mean(MeanClaim)) %>% 
-  ggplot(aes(x = Counts, y = MeanClaim)) +
-    geom_point()
-
-#Maybe not, idk
-
-#Independent modelling anyways.
+#Independent bootstrap samler
 
 sampleD <- data %>% 
   group_by(Year, Month, Season) %>% 
@@ -231,7 +274,7 @@ costs <- data.frame(matrix(ncol = 2, nrow = 0))
 
 #Ful loop IK men är trött och orkar ej googla
 
-for(i in 1:nrow(bsSample)){
+for(i in 1:nrow(claims)){
   
   TC1 = sum(sample(data[data$ClaimType == 1,]$ClaimCost, claims$n1[i], replace = TRUE))
   TC2 = sum(sample(data[data$ClaimType == 2,]$ClaimCost, claims$n2[i], replace = TRUE))
@@ -242,6 +285,14 @@ for(i in 1:nrow(bsSample)){
 }
 
 bsSample <- cbind(claims, costs) 
+
+```
+
+A single simulation gives us the following number of claims to the coming year.
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+kable(claims)
 
 ```
 
