@@ -98,11 +98,24 @@ N11 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
   filter(ClaimType ==1, Season == 1)
 
 fit <- fitdistr(N11$n, "Negative Binomial")
-df <- data.frame(x = c(N11$n, rpois(1000, mean(N11$n)), rnegbin(1000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N11$n),1000,1000))))
+set.seed(123)
+df <- data.frame(x = c(N11$n, rpois(10000, mean(N11$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N11$n),10000,10000))))
 
 df <- df[order(df$x), ]
 df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-plotcdfN11 <- ggplot(df, aes(x, ecdf, colour = ggg)) + geom_line() + scale_colour_hue(name="my legend", labels=c('Emp','Pois','NegBin'))
+plotcdfN11 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
+  geom_line() + 
+  scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 ))
+
+# plothistN11 <- ggplot(df, aes(x=x, fill = ggg)) +
+#   geom_histogram(aes(y = ..density..),position = "dodge2", breaks = 1:35) +
+#   scale_fill_manual(values=c("black", "blue", "red"))
+  
+plothistN11 <- ggplot(df, aes(x=x, fill = ggg)) +
+  geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
+  scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 ))
 
 
 
@@ -112,11 +125,20 @@ N12 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
   filter(ClaimType ==1, Season == 2)
 
 fit <- fitdistr(N12$n, "Negative Binomial")
-df <- data.frame(x = c(N12$n, rpois(1000, mean(N12$n)), rnegbin(1000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N12$n),1000,1000))))
+df <- data.frame(x = c(N12$n, rpois(10000, mean(N12$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N12$n),10000,10000))))
 
 df <- df[order(df$x), ]
 df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-plotcdfN12 <- ggplot(df, aes(x, ecdf, colour = ggg)) + geom_line() + scale_colour_hue(name="my legend", labels=c('Emp','Pois','NegBin'))
+plotcdfN12 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
+  geom_line() + 
+  scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 ))
+
+plothistN12 <-  ggplot(df, aes(x=x, fill = ggg)) +
+  geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
+  scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 ))
+
 
 
 
@@ -126,12 +148,19 @@ N21 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
   filter(ClaimType ==2, Season == 1)
 
 fit <- fitdistr(N21$n, "Negative Binomial")
-df <- data.frame(x = c(N21$n, rpois(1000, mean(N21$n)), rnegbin(1000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N21$n),1000,1000))))
+df <- data.frame(x = c(N21$n, rpois(10000, mean(N21$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N21$n),10000,10000))))
 
 df <- df[order(df$x), ]
 df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-plotcdfN21 <- ggplot(df, aes(x, ecdf, colour = ggg)) + geom_line() + scale_colour_hue(name="my legend", labels=c('Emp','Pois','NegBin'))
+plotcdfN21 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
+  geom_line() + 
+  scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 ))
 
+plothistN21 <-  ggplot(df, aes(x=x, fill = ggg)) +
+  geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
+  scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 ))
 
 
 #Plots for N_22
@@ -140,16 +169,35 @@ N22 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
   filter(ClaimType == 2, Season == 2)
 
 fit <- fitdistr(N22$n, "Negative Binomial")
-df <- data.frame(x = c(N22$n, rpois(1000, mean(N22$n)), rnegbin(1000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N22$n),1000,1000))))
+df <- data.frame(x = c(N22$n, rpois(10000, mean(N22$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N22$n),10000,10000))))
 
 df <- df[order(df$x), ]
 df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-plotcdfN22 <- ggplot(df, aes(x, ecdf, colour = ggg)) + geom_line() + scale_colour_hue(name="my legend", labels=c('Emp','Pois','NegBin'))
+plotcdfN22 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
+  geom_line() + 
+  scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 ))
 
-plotcdfN11
-plotcdfN12
-plotcdfN21
-plotcdfN22
+plothistN22 <- ggplot(df, aes(x=x, fill = ggg)) +
+  geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
+  scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+  scale_x_continuous(breaks = seq(0, max(df$x), by = 2 ))
+
+library(gridExtra)
+grid.arrange(plotcdfN11, plothistN11, nrow = 1)
+grid.arrange(plotcdfN12, plothistN12, nrow = 1)
+grid.arrange(plotcdfN21, plothistN21, nrow = 1)
+grid.arrange(plotcdfN22, plothistN22, nrow = 1)
+
+# plotcdfN11
+# plotcdfN12
+# plotcdfN21
+# plotcdfN22
+# 
+# plothistN11
+# plothistN12
+# plothistN21
+# plothistN22
 ```
 
 We note from the previous plots that there does not seem to be any major difference in the number of claims between the years.
