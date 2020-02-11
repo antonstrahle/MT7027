@@ -17,7 +17,7 @@ In this exercsie we want to find trends in the data for the two insurance branch
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(knitr))
 
-n <- 5000 #STORLEK FÖR SIMULERINGAR I 4,5,6,7
+n <- 1000 #STORLEK FÖR SIMULERINGAR I 4,5,6,7
 
 #standard theme
 #theme_set(theme_gray())
@@ -361,7 +361,7 @@ We note from the figures above that there seems to be some kind of positive corr
 
 #Exercise 4
 
-As we mentioned previously the number of claims for the two branches are not independent, meaning that the have to be sampled from a bivariate distribution rather than two univariate distributions. This can be done by either deriving the bivariate distribution analytically and then sampling from it or, as we will do, by using a bootstrap sampler. We begin by sampling the number of claims for each month of the following year from the data of the correct season. 
+As we mentioned previously the number of claims for the two branches are not independent, meaning that the have to be sampled from a bivariate distribution rather than two univariate distributions. This can be done by either deriving the bivariate distribution analytically and then sampling from it or, as we will do, by using a bootstrap sampler. We begin by sampling the number of claims for each month of the following year from the data of the correct season. We previosuly mentionded that the claim costs are time independent for both branches as well as that they are independent between the two insurance branches. Due to this we can as previosuly mentioned model claims and the individual claim costs independently.  
 
 ```{r echo = FALSE, message = FALSE, cache = TRUE}
 
@@ -420,7 +420,7 @@ for(i in 1:n){
     mutate(Year = i)
   
   samples <- rbind(samples, bsSample)
-  
+
 }
 
 samples1 <- samples %>% 
@@ -431,13 +431,15 @@ samples1 %>%
   ggplot(aes(x = Total)) +
     geom_histogram(bins = 20) +
     facet_wrap(~Type, scales = "free", labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
-    ggtitle("Fig 1: Distribution of sampled annual costs of the two branches")
+    ggtitle("Figure 1: Distribution of sampled annual costs of the two branches")
 
 ```
 
+From Figure 1 above we note that the distributions look fairly normal with branch $2$ having both a higher expectation and variance compared to branch $1$. 
+
 #Exercise 5
 
-We now want to implement two separate XL-covers. The first cover caps losses for the $10\%$ worst claims. For our two branches these cut-off $M_1$ and $M_2$ are the following
+We now want to implement two separate XL-covers. The covers caps losses for the $10\%$ worst claims for each respective insurance branch. For our two branches these cut-off $M_1$ and $M_2$ are the following
 
 ```{r echo = FALSE, warning = FALSE}
 
@@ -458,28 +460,31 @@ expectedCost <- samples %>%
 
 `r kable(mVals, caption = "Cut-offs")`
 
+We note that these cutoffs are vastly different for the two branches which of course is to be expected since they likely insure against different things. Graphically the distribution of the individual claim costs looks as follows when, and when not, taking the XL-covers into account.
+
 ```{r echo = FALSE, warning = FALSE}
 
-noXL <- data %>% 
-  ggplot(aes(x = ClaimCost)) +
-  geom_histogram(bins = 50) +
-  facet_wrap(~ClaimType, scales = "free") +
-  ggtitle("Historical claim costs without XL-covers (price not included)")
+noXL <- samples %>% 
+  ggplot(aes(x = Cost)) +
+  geom_histogram(aes(y = ..density..)) +
+  facet_wrap(~Type, scales = "free") +
+  ggtitle("Simulated claim costs without XL-covers")
 
-XL <- data %>% 
-  mutate(ClaimCost = ifelse(ClaimType == 1, pmin(ClaimCost, mVals$M[1]), pmin(ClaimCost, mVals$M[2]))) %>% 
-  ggplot(aes(x = ClaimCost)) +
-  geom_histogram(bins = 50) +
-  facet_wrap(~ClaimType, scales = "free") +
-  ggtitle("Historical claim costs with XL-covers (price not included)")
+XL <- samples %>% 
+  mutate(Cost = ifelse(Type == 1, pmin(Cost, mVals$M[1]), pmin(Cost, mVals$M[2]))) %>% 
+  ggplot(aes(x = Cost)) +
+  geom_histogram(aes(y = ..density..)) +
+  facet_wrap(~Type, scales = "free") +
+  ggtitle("Sinulated claim costs with XL-covers") 
 
-#OBS någon får gärna kolla limits för facet_wrap eller bara hårdkoda
+#OBS någon får gärna kolla limits för facet_wrap eller bara hårdkoday
+#Tror även densityn kan vara fel??? Känns lite väl lågt va
 
 grid.arrange(noXL, XL)
 
 ```
 
-From the figure above we see the distribution of claim costs for the two branches with, and wihtout, XL-cover. Of course these covers come at a price which we can estimate from histrocial data. 
+From the figures above we note that both XL-covers seem to cover some very deviating claim costs, specifically in the case of insurance branch 2 which in some sense could be expected due to the higher variance compared to branch 1. Due to the possibility of these large outliers the cost of the XL-covers will be very high.
 
 ```{r echo = FALSE, message = FALSE}
 
@@ -491,7 +496,7 @@ kable(prices, caption = "Prices for the two XL-covers")
 
 ```
 
-We then want to examine how the purchase of these XL-covers would impact our total losses for the forthcoming year. We saw a simulated distirbution of the losses without the XL-covers in figure 1. If we implement the covers we get the following simulated distributions.
+As previosuly mentioned both covers turn out to be fairly pricy, specifically the cover for branch 2. We now want to examine how the purchase of these XL-covers would impact our total losses for the forthcoming year. We saw a simulated distribution of the losses for the two branches without the XL-covers in Figure 1. If we implement the covers we get the following simulated distributions.
 
 ```{r echo = FALSE, cache = TRUE}
 
@@ -507,9 +512,15 @@ samples2 %>%
   ggplot(aes(x = Total)) +
     geom_histogram(bins = 20) +
     facet_wrap(~Type, scales = "free", labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
-    ggtitle("Distribution of sampled annual costs of the two branches with XL-covers")
+    ggtitle("Figure 2: Distribution of sampled annual costs of the two branches with XL-covers")
 
+```
 
+When comparing Figure 1 to Figure 2 we note that that the approximate expected cost for the forthcoming year is slighly higher when purchasing the XL-cover for the respective branches. This increase in the expected cost does however come with the benefit of reducing the weight of the tails of the distributions. As such, the purchase of the XL-covers seem to increase the average cost whilst reducing the overall risk. For a risk averse insurance provide these XL-covers could therefore serve as an excellent tool to reduce the overall risk.
+
+We can also observe the how the purchase of both covers affect the distribution of the overall annual cost.
+
+```{r echo = FALSE}
 #TotalCosts for no XL-cover
 
 (samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>% 
@@ -528,12 +539,11 @@ samples2 %>%
 
 ```
 
-
-We see that the distribution is lighter-tailed which of course is to be expected after the purchase of an XL-cover.
+Once again we see that the distribution is lighter-tailed whilst having a higher expectation.
 
 #Exercise 6
 
-We now want to implement an SL-cover instead of an XL-cover for both insurance branches. Like the XL-covers the SL-covers insure against the $10\%$ worst annual costs at a price of $120\%$ of the expected cost.
+We now want to implement an SL-cover instead of an XL-cover for both insurance branches. Like the XL-covers the SL-covers insure against the $10\%$ worst annual costs at a price of $120\%$ of the expected cost. We can once again plot the simulated annual costs with and without the SL-covers.
 
 ```{r echo = FALSE, cache = TRUE}
 
@@ -542,8 +552,6 @@ mVals2 <- samples1 %>%
   summarize(M = quantile(p = 0.9, Total))
 
 #SL-cover 
-
-#OSÄKER PÅ NEDAN!!!! Samma för Exercise 7
 
 #Cut-off and prices should probably rely on simulated data since we have very few data points
 #I.e. only 10 years => 10 observations of S
@@ -554,28 +562,30 @@ expectedCost2 <- samples1 %>%
   mutate(Price = Cost*1.2)
 
 
-#VÄLDIGT FULA
-# noSL <- data %>% 
-#   group_by(ClaimType, Year) %>% 
-#   summarize(Total = sum(ClaimCost)) %>% 
-#   ggplot(aes(x = Total)) +
-#   geom_histogram(bins = 50) +
-#   facet_wrap(~ClaimType, scales = "free") +
-#   ggtitle("Historical costs without SL covers (price not included)")
-# 
-# SL <- data %>% 
-#   group_by(ClaimType, Year) %>% 
-#   summarize(Total = sum(ClaimCost)) %>% 
-#   mutate(Total = ifelse(ClaimType == 1, pmin(Total, mVals2$M[1]), pmin(Total, mVals2$M[2]))) %>% 
-#   ggplot(aes(x = Total)) +
-#   geom_histogram(bins = 50) +
-#   facet_wrap(~ClaimType, scales = "free") +
-#   ggtitle("Historical costs with SL covers (price not included)")
+noSL <- samples1 %>%
+  ggplot(aes(x = Total, y = ..density..)) +
+  geom_histogram() +
+  facet_wrap(~Type, scales = "free") +
+  ggtitle("Simulated costs without SL covers")
+
+SL <- samples1 %>%
+  mutate(Total = ifelse(Type == 1, pmin(Total, mVals2$M[1]), pmin(Total, mVals2$M[2]))) %>%
+  ggplot(aes(x = Total, y = ..density..)) +
+  geom_histogram() +
+  facet_wrap(~Type, scales = "free") +
+  ggtitle("Simulated costs with SL covers")
+
+grid.arrange(noSL, SL)
+
+```
+
+In the case of the SL-covers we note that, unlike for the XL-covers, that we have no extreme deviations in the annual cost (compared to the deviations in the distribution of the claim costs). This is due to the fact that the annual cost is the aggregation of a very large number of individual claim costs, thus an outlier of the same proportions as those in the case of the individual claim costs will be theoretically extremely unlikely and practically never occur. In other words, by aggregating the claims we reduce the overall risk of large deviations. As such the prices for the SL-covers should in some sense be proportionally lower compared to those of the XL-covers.
+
+```{r echo = FALSE}
 
 prices2 <- expectedCost2 %>% 
   group_by(Type) %>% 
   summarize(Price = mean(Price)) 
-
 
 samples3 <- samples1 %>% 
   inner_join(mVals2, by = "Type") %>% 
@@ -585,25 +595,33 @@ samples3$Total <- samples3$Total + rep(prices2$Price, n)
 
 ```
 
-The prices of these two SL-covers do of course come at a cost. 
+The prices of the two SL-covers are as follows
 
-`r kable(prices2, caption = "Prices for the two SL-covers")`
+`r kable(prices2, caption = "Prices for the two SL-covers")` 
+
+Here we note that the prices are actually extremely low, for insurance branch 1 the annual cost of the SL-cover but a drop in the ocean compared to the overall annual claim costs. The price for the SL-cover for branch 2 is a bit more pricy which is due to the fact of the higher variance of the annual claim costs distribution as was previously noted.
 
 ```{r echo = FALSE}
 
-samples1 %>% 
-  ggplot(aes(x = Total)) +
-    geom_histogram(bins = 20) +
-    facet_wrap(~Type, scales = "free", labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
-    ggtitle("Distribution of sampled annual costs of the two branches without SL-covers")
+# samples1 %>% 
+#   ggplot(aes(x = Total, y = ..density..)) +
+#     geom_histogram() +
+#     facet_wrap(~Type, scales = "free", labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
+#     ggtitle("Sampled annual costs of the two branches without SL-covers")
 
 samples3 %>% 
-  ggplot(aes(x = Total)) +
-    geom_histogram(bins = 20) +
+  ggplot(aes(x = Total, y = ..density..)) +
+    geom_histogram() +
     facet_wrap(~Type, scales = "free", labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
-    ggtitle("Distribution of sampled annual costs of the two branches with SL-covers")
+    ggtitle("Figure 3: Sampled annual costs with SL-covers")
 
+```
 
+When comparing Figure 1 and Figure 3 we note that the expected cost is slightly higher due to the price of the SL-cover but more importantly that we have cut-offs which essentially prohibits any larger deviations in the overall cost past the cut-off point. By doing this the distributions for the overall costs are skewed slightly positiveley.
+
+We can also examine how the purchase of both covers impact the overall annual claim costs.
+
+```{r echo = FALSE}
 #Total costs
 
 (samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>% 
@@ -623,6 +641,7 @@ samples3 %>%
 
 ```
 
+By purchasing both covers we increase the expectation slightly whilst also skewing the distribution positivley as in the case of the individual cost distributions of the branches.
 
 #Exercise 7
 
@@ -644,18 +663,30 @@ samples4 <- samples1 %>%
   group_by(Year) %>% 
   mutate(Total = min(sum(Total),mVals3)) 
 
+noSL2 <- (samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>%
+  data.frame() %>% 
+  setNames("Total") %>% 
+  ggplot(aes(x = Total, y = ..density..)) +
+  geom_histogram() +
+  ggtitle("Simulated costs without SL covers")
+
+SL2 <- samples4 %>%
+  mutate(Total = pmin(Total, mVals3)) %>%
+  ggplot(aes(x = Total, y = ..density..)) +
+  geom_histogram() +
+  ggtitle("Simulated costs with SL covers")
+
+grid.arrange(noSL2, SL2)
+
 ```
 
-The cost of this cover, based on historical data, is `r prices3`
+Like for the previous SL-covers we note that the distribution of the total annual cost without the purchase of the cover lacks any extreme outliers and as a result the overall cost for the SL-insurer and as a consequence the price will be lower.
+
+The cost of this cover, based on simulated data, is `r prices3` which is once again lower than than the previously examined covers, this is because we have aggregated on yet another level which has further reduced the risk.
 
 ```{r echo = FALSE}
 
-(samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>% 
-  data.frame() %>% 
-  setNames("Cost") %>% 
-  ggplot(aes(x = Cost)) +
-  geom_histogram(bins = 30) +
-  ggtitle("Total costs across both branches without SL-covers")
+samples4$Total <- samples4$Total + prices3
 
 samples4 %>% 
   ggplot(aes(x = Total)) +
