@@ -17,6 +17,8 @@ In this exercsie we want to find trends in the data for the two insurance branch
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(knitr))
 
+n <- 5000 #STORLEK FÖR SIMULERINGAR I 4,5,6,7
+
 #standard theme
 #theme_set(theme_gray())
 
@@ -410,20 +412,20 @@ bsSampler <- function(){
   
 }
 
-samples1 <- data.frame(matrix(ncol = 2, nrow = 0))
+samples <- data.frame(matrix(ncol = 4, nrow = 0))
 
-for(i in 1:5000){
+for(i in 1:n){
   
-  bsSample <- bsSampler()
+  bsSample <- bsSampler() %>% 
+    mutate(Year = i)
   
-  costs <- bsSample %>% 
-    group_by(Type) %>% 
-    summarize(Total = sum(Cost)) %>% 
-    data.frame()
-  
-  samples1 <- rbind(samples1, costs)
+  samples <- rbind(samples, bsSample)
   
 }
+
+samples1 <- samples %>% 
+  group_by(Type, Year) %>% 
+  summarize(Total = sum(Cost))
 
 samples1 %>% 
   ggplot(aes(x = Total)) +
@@ -439,16 +441,16 @@ We now want to implement two separate XL-covers. The first cover caps losses for
 
 ```{r echo = FALSE, warning = FALSE}
 
-mVals <- data %>% 
-  group_by(ClaimType) %>% 
-  summarize(M = quantile(p = 0.9, ClaimCost))
+mVals <- samples %>% 
+  group_by(Type) %>% 
+  summarize(M = quantile(p = 0.9, Cost))
 
 #XL-cover
 
-expectedCost <- data %>% 
-  inner_join(mVals, by = "ClaimType") %>% 
-  mutate(Expenditures = pmax(ClaimCost-M,0)) %>% 
-  group_by(ClaimType, Year) %>% 
+expectedCost <- samples %>% 
+  inner_join(mVals, by = "Type") %>% 
+  mutate(Expenditures = pmax(Cost-M,0)) %>% 
+  group_by(Type, Year) %>% 
   summarize(TotalExpenditures = sum(Expenditures)) %>% 
   mutate(Price = 1.2*TotalExpenditures)
 
@@ -482,7 +484,7 @@ From the figure above we see the distribution of claim costs for the two branche
 ```{r echo = FALSE, message = FALSE}
 
 prices <- expectedCost %>% 
-  group_by(ClaimType) %>% 
+  group_by(Type) %>% 
   summarize(Price = mean(Price)) 
 
 kable(prices, caption = "Prices for the two XL-covers")
@@ -493,25 +495,14 @@ We then want to examine how the purchase of these XL-covers would impact our tot
 
 ```{r echo = FALSE, cache = TRUE}
 
-samples2 <- data.frame(matrix(ncol = 2, nrow = 0))
+samples2 <- samples %>% 
+  inner_join(mVals, by = "Type") %>% 
+  mutate(Cost = pmin(Cost, M)) %>% 
+  group_by(Year, Type) %>% 
+  summarize(Total = sum(Cost))
 
-for(i in 1:5000){
+samples2$Total <- samples2$Total + rep(prices$Price, n)
   
-  bsSample <- bsSampler()
-  
-  costs <- bsSample %>% 
-    inner_join(mVals, by = c("Type" = "ClaimType")) %>% 
-    mutate(Cost = pmin(Cost, M)) %>% 
-    group_by(Type) %>% 
-    summarize(Total = sum(Cost)) 
-  
-  costs <- (costs + prices) %>% 
-    mutate(Type = Type/2)
-  
-  samples2 <- rbind(samples2, costs)
-  
-}
-
 samples2 %>% 
   ggplot(aes(x = Total)) +
     geom_histogram(bins = 20) +
@@ -557,10 +548,8 @@ mVals2 <- samples1 %>%
 #Cut-off and prices should probably rely on simulated data since we have very few data points
 #I.e. only 10 years => 10 observations of S
 
-expectedCost2 <- data %>% 
-  group_by(ClaimType, Year) %>% 
-  summarize(Total = sum(ClaimCost)) %>% 
-  inner_join(mVals2, by = c("ClaimType" = "Type")) %>% 
+expectedCost2 <- samples1 %>% 
+  inner_join(mVals2, by = "Type") %>% 
   mutate(Cost = pmax(Total-M, 0)) %>% 
   mutate(Price = Cost*1.2)
 
@@ -584,29 +573,15 @@ expectedCost2 <- data %>%
 #   ggtitle("Historical costs with SL covers (price not included)")
 
 prices2 <- expectedCost2 %>% 
-  group_by(ClaimType) %>% 
+  group_by(Type) %>% 
   summarize(Price = mean(Price)) 
 
-samples3 <- data.frame(matrix(ncol = 2, nrow = 0))
 
-for(i in 1:5000){
+samples3 <- samples1 %>% 
+  inner_join(mVals2, by = "Type") %>% 
+  mutate(Total = pmin(Total, M)) 
   
-  bsSample <- bsSampler()
-  
-  costs <- bsSample %>% 
-    group_by(Type) %>% 
-    summarize(Total = sum(Cost)) %>% 
-    inner_join(mVals2, by = "Type") %>% 
-    mutate(Cost = pmin(Total, M)) %>% 
-    dplyr::select(Type, Cost)
-  
-  costs <- (costs + prices2) %>% 
-    mutate(Type = Type/2)
-  
-  samples3 <- rbind(samples3, costs)
-  
-}
-
+samples3$Total <- samples3$Total + rep(prices2$Price, n)
 
 ```
 
@@ -623,7 +598,7 @@ samples1 %>%
     ggtitle("Distribution of sampled annual costs of the two branches without SL-covers")
 
 samples3 %>% 
-  ggplot(aes(x = Cost)) +
+  ggplot(aes(x = Total)) +
     geom_histogram(bins = 20) +
     facet_wrap(~Type, scales = "free", labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
     ggtitle("Distribution of sampled annual costs of the two branches with SL-covers")
@@ -633,15 +608,15 @@ samples3 %>%
 
 (samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>% 
   data.frame() %>% 
-  setNames("Cost") %>% 
-  ggplot(aes(x = Cost)) +
+  setNames("Total") %>% 
+  ggplot(aes(x = Total)) +
   geom_histogram(bins = 30) +
   ggtitle("Total costs across both branches without SL-covers")
 
-(samples3$Cost[samples3$Type == 1] + samples3$Cost[samples3$Type == 2]) %>% 
+(samples3$Total[samples3$Type == 1] + samples3$Total[samples3$Type == 2]) %>% 
   data.frame() %>% 
-  setNames("Cost") %>% 
-  ggplot(aes(x = Cost)) +
+  setNames("Total") %>% 
+  ggplot(aes(x = Total)) +
   geom_histogram(bins = 30) +
   ggtitle("Total costs across both branches with SL-covers")
 
@@ -657,25 +632,17 @@ Lastly we want to implement an SL-cover which insured against $10\%$ of the wors
 
 mVals3 <- quantile((samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]), 0.9)
 
-expectedCost3 <- data %>% 
+expectedCost3 <- samples1 %>% 
   group_by(Year) %>% 
-  summarize(Total = sum(ClaimCost)) %>% 
+  summarize(Total = sum(Total)) %>% 
   mutate(Cost = pmax(Total-mVals3, 0)) %>% 
   mutate(Price = Cost*1.2)
 
 prices3 <- mean(expectedCost3$Price)
 
-samples4 <- c()
-
-for(i in 1:5000){
-  
-  bsSample <- bsSampler()
-  
-  cost = min(sum(bsSample$Cost), mVals3)
-  
-  samples4 <- c(samples4, cost + prices3)
-  
-}
+samples4 <- samples1 %>% 
+  group_by(Year) %>% 
+  mutate(Total = min(sum(Total),mVals3)) 
 
 ```
 
@@ -691,9 +658,7 @@ The cost of this cover, based on historical data, is `r prices3`
   ggtitle("Total costs across both branches without SL-covers")
 
 samples4 %>% 
-  data.frame() %>% 
-  setNames("Cost") %>% 
-  ggplot(aes(x = Cost)) +
+  ggplot(aes(x = Total)) +
   geom_histogram(bins = 30) +
   ggtitle("Total costs across both branches with joint SL-cover")
 
