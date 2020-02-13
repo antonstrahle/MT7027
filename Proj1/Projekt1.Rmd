@@ -256,7 +256,7 @@ grid.arrange(plotcdfN22, plothistN22, nrow = 1)
 
 #Exercise 2
 
-It is not only of interset to observe the number of claims over time but to also examine the sizes of these claims. 
+In this exercise we analyze the claim costs over time for each of the two insurance branches. We are looking for possible patterns in the claim costs over time by analyzing the distribution of the claim costs. The following plots look at the average claim cost for each month and insurance branch.
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
 
@@ -324,12 +324,12 @@ data %>%
                labeller = label_wrap_gen(multi_line=FALSE)) +
     ggtitle("Insurance Product, Season")
 
-
 ```
 
-We note that we do not seem to have any systematic correlation for any of the combinations of claims and claim costs, meaning that we can model the number of claims and the claim costs independently.
+From the plots above we cannot see any systematic correlation between claims and claim costs for any of the combinations, meaning that we can model the number of claims and claim costs independantly. We do not observe any time dependencies in terms of average claim costs and there seem to be no systematic correlation between claims and claim costs. In conclussion, the lack of time dependencies for the claim costs means that we can model the claim costs with the assumtion that the claim costs are time independant. 
 
 #Exercise 3 
+
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
 
