@@ -1,0 +1,200 @@
+---
+title: "Project 2"
+author: "Anton Stråhle"
+date: "15 februari 2020"
+output: pdf_document
+---
+
+#Exercise 1
+
+```{r}
+
+library(knitr)
+library(readr)
+library(tidyverse)
+
+data <- read.delim("Projekt2_Grupp9.txt", sep = ";") %>% 
+  mutate(ClaimYear = floor(ClaimDay/365.25) + 1,
+         PaymentYear = floor(PaymentDay/365.25) + 1)
+
+ct <- data %>% filter(ClaimYear >= 11) %>% 
+  group_by(ClaimYear, PaymentYear) %>% 
+  summarize(Total = sum(ClaimCost)) %>% 
+  mutate(DevelopmentYear = PaymentYear-ClaimYear + 1) %>% 
+  select(-PaymentYear) %>% 
+  mutate(Total = cumsum(Total)) %>% 
+  spread(value = Total, key = DevelopmentYear) %>% 
+  ungroup() %>% 
+  select(-ClaimYear)
+
+#Predicts the incremental factors f based on the observed triangle (not trapezoid!)
+
+predictF <- function(ct){
+  
+  n <- nrow(ct)
+  
+  fVec <- c()
+  
+  for(i in 1:(n-1)){
+    
+    f <- sum(ct[1:(n-i),i+1])/sum(ct[1:(n-i),i])
+    
+    fVec[i] <- f
+    
+  }
+  
+  fVec
+  
+}
+
+
+fillct <- function(ct){
+  
+  fHat <- predictF(ct)
+  
+  for(i in 2:n){
+  
+    for(j in (n-i+2):n){
+    
+    ct[i,j] <- ct[i,j-1]*fHat[j-1]
+    
+    }
+    
+  }
+
+    ct
+  
+}
+
+
+filledct <- fillct(ct)
+
+fHat <- predictF(ct)
+
+```
+
+#Exercise 2
+
+We now want to check whether or not Mack's undrlying assumptions are met in our case. The assumptions are as follows.
+
+\begin{enumerate}
+  \item E[C_{i,k+1}|C_{i,1},...,C{i,k}] = f_kC_{i,k}
+  \item \text{Independent accident years}
+  \item Var(C_{i,k+1}|C_{i,1},...,C{i,k}) = \sigma_k^2C_{i,k}
+\end{enumerate}
+
+We begin by examing whether or not the we have an approximate linear relationship between $C_{i,k}$ and $C_{i,k+1}$ for $i = 1,...,10$
+
+```{r}
+
+#Gör om gör fint!
+
+plot(ct$`1`, ct$`2`)
+lines(seq(5e6,2e7, by = 10000), sapply(X = seq(5e6,2e7, by = 10000), FUN = function(x){ x*fHat[1]}), col = "blue")
+
+plot(ct$`2`, ct$`3`)
+lines(seq(1e7,4e7, by = 10000), sapply(X = seq(1e7,4e7, by = 10000), FUN = function(x){ x*fHat[2]}), col = "blue")
+
+plot(ct$`3`, ct$`4`)
+lines(seq(1e7,4e7, by = 10000), sapply(X = seq(1e7,4e7, by = 10000), FUN = function(x){ x*fHat[3]}), col = "blue")
+
+plot(ct$`4`, ct$`5`)
+lines(seq(1e7,5e7, by = 10000), sapply(X = seq(1e7,5e7, by = 10000), FUN = function(x){ x*fHat[4]}), col = "blue")
+
+plot(ct$`5`, ct$`6`)
+lines(seq(1e7,6e7, by = 10000), sapply(X = seq(1e7,6e7, by = 10000), FUN = function(x){ x*fHat[5]}), col = "blue")
+
+plot(ct$`6`, ct$`7`)
+lines(seq(1e7,6e7, by = 10000), sapply(X = seq(1e7,6e7, by = 10000), FUN = function(x){ x*fHat[6]}), col = "blue")
+
+plot(ct$`7`, ct$`8`)
+lines(seq(1e7,6e7, by = 10000), sapply(X = seq(1e7,6e7, by = 10000), FUN = function(x){ x*fHat[7]}), col = "blue")
+
+plot(ct$`8`, ct$`9`)
+lines(seq(1e7,6e7, by = 10000), sapply(X = seq(1e7,6e7, by = 10000), FUN = function(x){ x*fHat[8]}), col = "blue")
+
+#Skoja dem blev faktiskt inte så fula
+
+```
+
+We note that the linear approximation seems to hold. We now want to plot the weighted residuals.
+
+```{r}
+
+residualHelper <- function(ct){
+  
+  fHat <- predictF(ct)
+  
+  df <- data.frame(matrix(ncol = 3, nrow = 0))
+  
+  for(i in 1:(n-1)){
+  
+    for(j in 2:(n-i+1)){
+    
+      res <- (ct[i,j] - ct[i,j-1]*fHat[j-1])/sqrt(ct[i,j-1])
+      
+      df <- rbind(df, unlist(c(i,unname(res), ct[i,j-1])))
+    
+    }
+    
+  }
+
+  df
+  
+}
+
+resFrame <- residualHelper(ct) %>% 
+  setNames(c("Year", "Res", "Ci"))
+
+ggplot(resFrame, aes(x = Ci, y = Res)) +
+  geom_point() +
+  facet_wrap(~Year, scales = "free_y") 
+
+#Notera att vi bara beaktar år med fler än 6 punkter enl Mack!
+#OBS enbart använt vanliga f. Kan vara bra att kolla resterande
+
+```
+
+All years with more than 6 points, as suggested by Mack, seem to showcase random behaviour and no signs of any systematic deviations.
+
+Lastly we want to examine whether or not we have any calender year effects. An example of a scenario where the assumption of independent years might be violated is if there is an overhaul of the way claims are handled.
+
+```{r}
+
+fList <- list()
+
+for(k in 1:(n-1)){
+  
+  fk <- c()
+  
+  for(i in 1:(n-k)){
+    
+    temp <- unlist(ct[i, k+1])/unlist(ct[i,k])
+    
+    names(temp) <- k+i-1 #år
+    
+    fk <- c(fk, temp)
+    
+  }
+  
+  fList[[k]] <- sort(fk)
+  
+}
+
+fList
+
+#Detta blev ju väldigt fult men det får fram budskapet
+#Gör en tabell där man räknar kardinaleteten av
+#sFk och lFk för alla k
+
+
+```
+
+We might have some seasonal dependence idk??
+
+#Exercise 3
+
+
+
+
+
