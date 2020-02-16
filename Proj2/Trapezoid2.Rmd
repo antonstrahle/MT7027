@@ -7,7 +7,7 @@ output: pdf_document
 
 #Exercise 1
 
-```{r}
+```{r, echo = FALSE, suppresPackageStartup = TRUE}
 
 library(knitr)
 library(readr)
@@ -87,6 +87,10 @@ fullct <- fillct(ct)
 
 fHat <- estimateF(trap)
 
+options(knitr.kable.NA = '') #finare
+
+kable(ct %>% data.frame(), caption = "Paid claims triangle", row.names = c(1:10), col.names = c(1:11))
+
 kable(fullct %>% data.frame(), caption = "Full claims triangle predicted with CL", row.names = c(1:10), col.names = c(1:11))
 ```
 
@@ -102,7 +106,7 @@ We now want to check whether or not Mack's undrlying assumptions are met in our 
 
 We begin by examing whether or not the we have an approximate linear relationship between $C_{i,k}$ and $C_{i,k+1}$ for $i = 1,...,10$
 
-```{r}
+```{r echo = FALSE}
 
 #Gör om gör fint!
 
@@ -141,7 +145,7 @@ lines(seq(1e7,6e7, by = 10000), sapply(X = seq(1e7,6e7, by = 10000), FUN = funct
 
 We note that the linear approximation seems to hold. We now want to plot the weighted residuals.
 
-```{r}
+```{r echo = FALSE}
 
 residualHelper <- function(s = 11, trapezoid = trap){
   
@@ -186,7 +190,7 @@ All years with more than 6 points, as suggested by Mack, seem to showcase random
 
 Lastly we want to examine whether or not we have any calender year effects. An example of a scenario where the assumption of independent years might be violated is if there is an overhaul of the way claims are handled.
 
-```{r}
+```{r echo = FALSE}
 
 #Alltså detta är så dumt
 
@@ -243,7 +247,7 @@ $$
 $$
 which is an unbiased estimator. 
 
-```{r}
+```{r echo = FALSE}
 
 #WE now need the last 11 years
 #För att estimera sigma10 behöver vi de senaste 12 inte 11!!
@@ -336,7 +340,7 @@ kable(risks, caption = "Reserve risk for coming years")
 ```
 
 
-```{r}
+```{r echo = FALSE}
 
 prevct <- trap[1:10,]
 
@@ -408,7 +412,7 @@ Looks pretty good to me.
 
 #Exercise 4
 
-```{r}
+```{r echo = FALSE}
 
 #need incremental data
 
