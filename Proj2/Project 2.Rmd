@@ -13,17 +13,31 @@ library(knitr)
 library(readr)
 library(tidyverse)
 
+options(knitr.kable.NA = '')
+
 data <- read.delim("Projekt2_Grupp9.txt", sep = ";") %>% 
   mutate(ClaimYear = floor((ClaimDay-1)/365) + 1,
          PaymentYear = floor((PaymentDay-1)/365) + 1) %>% 
-  rbind(c(1,1,1,0,1,10)) %>% 
-  rbind(c(1,1,1,0,10,19)) #Added to deal with aggregation in a simple manner
-
-ct <- data %>% 
-  group_by(ClaimYear, PaymentYear) %>% 
-  summarize(Total = sum(ClaimCost)) %>% 
   mutate(DevelopmentYear = PaymentYear-ClaimYear + 1) %>% 
   select(-PaymentYear) %>% 
+  complete(ClaimType, nesting(ClaimYear, DevelopmentYear), fill = list(PaymentDay = 1, ClaimCost = 0, ClaimDay = 0)) %>% 
+  filter(DevelopmentYear < 11)
+  
+
+ct1 <- data %>% 
+  filter(ClaimType == 1) %>% 
+  group_by(ClaimYear, DevelopmentYear) %>% 
+  summarize(Total = sum(ClaimCost)) %>%
+  mutate(Total = cumsum(Total)) %>% 
+  spread(value = Total, key = DevelopmentYear) %>% 
+  ungroup() %>% 
+  filter(ClaimYear >= 11) %>% 
+  select(-ClaimYear)
+
+ct2 <- data %>% 
+  filter(ClaimType == 2) %>% 
+  group_by(ClaimYear, DevelopmentYear) %>% 
+  summarize(Total = sum(ClaimCost)) %>%
   mutate(Total = cumsum(Total)) %>% 
   spread(value = Total, key = DevelopmentYear) %>% 
   ungroup() %>% 
@@ -34,13 +48,15 @@ ct <- data %>%
 
 estimateF <- function(ct){
   
-  n <- nrow(ct)
+  n <- ncol(ct)
+  
+  r <- nrow(ct)
   
   fVec <- c()
   
   for(i in 1:(n-1)){
     
-    f <- sum(ct[1:(n-i),i+1])/sum(ct[1:(n-i),i])
+    f <- sum(ct[1:(r-i),i+1])/sum(ct[1:(r-i),i])
     
     fVec[i] <- f
     
@@ -53,15 +69,19 @@ estimateF <- function(ct){
 
 fillct <- function(ct){
   
-  n <- nrow(ct)
+  n <- ncol(ct)
+  
+  r <- nrow(ct)
+  
+  s <- r - n
   
   fHat <- estimateF(ct)
   
-  for(i in 2:n){
+  for(i in (2+s):r){
   
-    for(j in (n-i+2):n){
+    for(j in (n-i+2+s):n){
     
-    ct[i,j] <- ct[i,j-1]*fHat[j-1]
+      ct[i,j] <- ct[i,j-1]*fHat[j-1]
     
     }
     
@@ -71,13 +91,22 @@ fillct <- function(ct){
   
 }
 
+fHat1 <- estimateF(ct1)
 
-fullct <- fillct(ct)
+fHat2 <- estimateF(ct2)
 
-fHat <- estimateF(ct)
+fullct1 <- fillct(ct1)
 
+fullct2 <- fillct(ct2)
 
-kable(fullct, caption = "Full claims triangle predicted with CL", row.names = c(1:10))
+kable(ct1, caption = "Paid claims triangle of type 1", row.names = c(1:10))
+
+kable(ct2, caption = "Paid claims triangle of type 2", row.names = c(1:10))
+
+kable(fullct1, caption = "Full claims triangle of type 1 predicted with CL", row.names = c(1:10))
+
+kable(fullct2, caption = "Full claims triangle of type 2 predicted with CL", row.names = c(1:10))
+
 ```
 
 #Exercise 2
@@ -96,31 +125,55 @@ We begin by examing whether or not the we have an approximate linear relationshi
 
 #Gör om gör fint!
 
-plot(ct$`1`, ct$`2`)
-lines(seq(5e6,2e7, by = 10000), sapply(X = seq(5e6,2e7, by = 10000), FUN = function(x){ x*fHat[1]}), col = "blue")
+plot(ct1$`1`, ct1$`2`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[1]}), col = "blue")
 
-plot(ct$`2`, ct$`3`)
-lines(seq(1e7,4e7, by = 10000), sapply(X = seq(1e7,4e7, by = 10000), FUN = function(x){ x*fHat[2]}), col = "blue")
+plot(ct1$`2`, ct1$`3`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[2]}), col = "blue")
 
-plot(ct$`3`, ct$`4`)
-lines(seq(1e7,4e7, by = 10000), sapply(X = seq(1e7,4e7, by = 10000), FUN = function(x){ x*fHat[3]}), col = "blue")
+plot(ct1$`3`, ct1$`4`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[3]}), col = "blue")
 
-plot(ct$`4`, ct$`5`)
-lines(seq(1e7,5e7, by = 10000), sapply(X = seq(1e7,5e7, by = 10000), FUN = function(x){ x*fHat[4]}), col = "blue")
+plot(ct1$`4`, ct1$`5`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[4]}), col = "blue")
 
-plot(ct$`5`, ct$`6`)
-lines(seq(1e7,6e7, by = 10000), sapply(X = seq(1e7,6e7, by = 10000), FUN = function(x){ x*fHat[5]}), col = "blue")
+plot(ct1$`5`, ct1$`6`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[5]}), col = "blue")
 
-plot(ct$`6`, ct$`7`)
-lines(seq(1e7,6e7, by = 10000), sapply(X = seq(1e7,6e7, by = 10000), FUN = function(x){ x*fHat[6]}), col = "blue")
+plot(ct1$`6`, ct1$`7`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[6]}), col = "blue")
 
-plot(ct$`7`, ct$`8`)
-lines(seq(1e7,6e7, by = 10000), sapply(X = seq(1e7,6e7, by = 10000), FUN = function(x){ x*fHat[7]}), col = "blue")
+plot(ct1$`7`, ct1$`8`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[7]}), col = "blue")
 
-plot(ct$`8`, ct$`9`)
-lines(seq(1e7,6e7, by = 10000), sapply(X = seq(1e7,6e7, by = 10000), FUN = function(x){ x*fHat[8]}), col = "blue")
+plot(ct1$`8`, ct1$`9`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[8]}), col = "blue")
 
 #Skoja dem blev faktiskt inte så fula
+
+plot(ct2$`1`, ct2$`2`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat2[1]}), col = "blue")
+
+plot(ct2$`2`, ct2$`3`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat2[2]}), col = "blue")
+
+plot(ct2$`3`, ct2$`4`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat2[3]}), col = "blue")
+
+plot(ct2$`4`, ct2$`5`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat2[4]}), col = "blue")
+
+plot(ct2$`5`, ct2$`6`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat2[5]}), col = "blue")
+
+plot(ct2$`6`, ct2$`7`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat2[6]}), col = "blue")
+
+plot(ct2$`7`, ct2$`8`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat2[7]}), col = "blue")
+
+plot(ct2$`8`, ct2$`9`)
+lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat2[8]}), col = "blue")
 
 ```
 
@@ -152,7 +205,7 @@ residualHelper <- function(ct){
   
 }
 
-resFrame <- residualHelper(ct) %>% 
+resFrame <- residualHelper(ct1) %>% 
   setNames(c("Year", "Res", "Ci"))
 
 ggplot(resFrame, aes(x = Ci, y = Res)) +
@@ -162,6 +215,13 @@ ggplot(resFrame, aes(x = Ci, y = Res)) +
 #Notera att vi bara beaktar år med fler än 6 punkter enl Mack!
 #OBS enbart använt vanliga f. Kan vara bra att kolla resterande
 
+resFrame <- residualHelper(ct2) %>% 
+  setNames(c("Year", "Res", "Ci"))
+
+ggplot(resFrame, aes(x = Ci, y = Res)) +
+  geom_point() +
+  facet_wrap(~Year, scales = "free_y")
+
 ```
 
 All years with more than 6 points, as suggested by Mack, seem to showcase random behaviour and no signs of any systematic deviations.
@@ -170,9 +230,11 @@ Lastly we want to examine whether or not we have any calender year effects. An e
 
 ```{r}
 
-n <- nrow(ct)
+#Branch 1
 
-fList <- list()
+n <- nrow(ct1)
+
+fList1 <- list()
 
 for(k in 1:(n-1)){
   
@@ -180,7 +242,7 @@ for(k in 1:(n-1)){
   
   for(i in 1:(n-k)){
     
-    temp <- unlist(ct[i, k+1])/unlist(ct[i,k])
+    temp <- unlist(ct1[i, k+1])/unlist(ct1[i,k])
     
     names(temp) <- k+i-1 #år
     
@@ -188,11 +250,38 @@ for(k in 1:(n-1)){
     
   }
   
-  fList[[k]] <- sort(fk)
+  fList1[[k]] <- sort(fk)
   
 }
 
-fList
+fList1
+
+#Branch 2
+
+n <- nrow(ct2)
+
+fList2 <- list()
+
+for(k in 1:(n-1)){
+  
+  fk <- c()
+  
+  for(i in 1:(n-k)){
+    
+    temp <- unlist(ct2[i, k+1])/unlist(ct2[i,k])
+    
+    names(temp) <- k+i-1 #år
+    
+    fk <- c(fk, temp)
+    
+  }
+  
+  fList2[[k]] <- sort(fk)
+  
+}
+
+fList2
+
 
 #Detta blev ju väldigt fult men det får fram budskapet
 #Gör en tabell där man räknar kardinaleteten av
@@ -221,22 +310,33 @@ which is an unbiased estimator.
 
 #WE now need the last 11 years
 
-data2 <- rbind(data, c(1, 3735, 7021, 0, 10, 19)) #det är dumt men det gör det MYCKET lättare då den får bort NA i ct11[1,10]
-
-ct11 <- data2 %>% filter(ClaimYear >= 10) %>% 
-  group_by(ClaimYear, PaymentYear) %>% 
+ct1Alt <- data %>% 
+  rbind(c(1,10,10,1,1,0)) %>% 
+  filter(ClaimType == 1) %>% 
+  filter(ClaimYear >= 10) %>% 
+  group_by(ClaimYear, DevelopmentYear) %>% 
   summarize(Total = sum(ClaimCost)) %>% 
-  mutate(DevelopmentYear = PaymentYear-ClaimYear + 1) %>% 
-  select(-PaymentYear) %>% 
   mutate(Total = cumsum(Total)) %>% 
   spread(value = Total, key = DevelopmentYear) %>% 
   ungroup() %>% 
   select(-ClaimYear)
 
+ct2Alt <- data %>% 
+  rbind(c(2,10,10,1,1,0)) %>% 
+  filter(ClaimType == 2) %>% 
+  filter(ClaimYear >= 10) %>% 
+  group_by(ClaimYear, DevelopmentYear) %>% 
+  summarize(Total = sum(ClaimCost)) %>% 
+  mutate(Total = cumsum(Total)) %>% 
+  spread(value = Total, key = DevelopmentYear) %>% 
+  ungroup() %>% 
+  select(-ClaimYear)
 
 estimateSigma <- function(ct){
   
-  n <- nrow(ct)
+  n <- ncol(ct)
+  
+  r <- nrow(ct)
   
   C <- fillct(ct)
   
@@ -244,17 +344,17 @@ estimateSigma <- function(ct){
   
   sigmaHat <- c()
   
-  for(k in 1:(n-2)){
+  for(k in 1:(n-1)){
     
     sum <- 0
     
-    for(j in 1:(n-k)){
+    for(i in 1:(r-k)){
       
-      sum = sum + C[j,k]*(C[j,k+1]/(C[j,k]) - fHat[k])^2 
+      sum = sum + C[i,k]*(C[i,k+1]/(C[i,k]) - fHat[k])^2 
       
     }
     
-    sigmaHat = c(sigmaHat, unlist(sum/(n-k-1)))
+    sigmaHat = c(sigmaHat, unlist(sum)/(r-k-1)) #Henning sa att I = r (då I = n ger delning med 0)
     
   }
   
@@ -262,18 +362,19 @@ estimateSigma <- function(ct){
   
 }
 
-sigmaHat <- estimateSigma(ct11) #estimates sigma^2
+sigmaHat1 <- estimateSigma(ct1Alt) #estimates sigma^2 for type 1
 
+sigmaHat2 <- estimateSigma(ct2Alt) #estimates sigma^2 for type 2
 
-riskCalculation <- function(ct, ct11){
+riskCalculation <- function(ct, ctAlt){
   
   n <- nrow(ct)
   
   C <- fillct(ct)
   
-  fHat <- estimateF(ct)
+  fHat <- estimateF(ctAlt)
   
-  sigmaHat <- estimateSigma(ct11) #estimates sigma^2
+  sigmaHat <- estimateSigma(ctAlt) #estimates sigma^2
   
   risks <- c()
   
@@ -295,45 +396,59 @@ riskCalculation <- function(ct, ct11){
   
 }
 
-risks <- cbind(2:10,unname(riskCalculation(ct, ct11)), fullct[2:10,10]) %>% 
+risks1 <- cbind(2:10,unname(riskCalculation(ct1, ct1Alt)), fullct1[2:10,10]) %>% 
   data.frame() %>% 
   setNames(c("Year", "Reserve Risk", "Reserve")) 
 
-kable(risks, caption = "Reserve risk for coming years")
+kable(risks1, caption = "Reserve risk for coming years for branch 1")
+
+risks2 <- cbind(2:10,unname(riskCalculation(ct2, ct2Alt)), fullct2[2:10,10]) %>% 
+  data.frame() %>% 
+  setNames(c("Year", "Reserve Risk", "Reserve")) 
+
+kable(risks2, caption = "Reserve risk for coming years for branch 1")
 
 ```
 
 
+
 ```{r}
 
-#Blankrader för att lösa aggregeringsproblems
-
-data3 <- data %>% 
-  filter(ClaimYear <= 10) %>% 
-  rbind(c(1,1,1,0,1,10)) %>% 
-  rbind(c(1,1,1,0,10,19))
-
-#Not vi har skador med utvecklingsår 1+ vilket vi ej ska ha?? Behöver fråga.
-
-ct <- data3 %>% 
-  group_by(ClaimYear, PaymentYear) %>% 
-  summarize(Total = sum(ClaimCost)) %>% 
-  mutate(DevelopmentYear = PaymentYear-ClaimYear + 1) %>% 
-  select(-PaymentYear) %>% 
+prevct1 <- data %>% 
+  rbind(c(1,1,10,1,1,0)) %>% 
+  rbind(c(1,10,10,1,1,0)) %>% 
+  filter(ClaimType == 1) %>% 
+  group_by(ClaimYear, DevelopmentYear) %>% 
+  summarize(Total = sum(ClaimCost)) %>%
   mutate(Total = cumsum(Total)) %>% 
   spread(value = Total, key = DevelopmentYear) %>% 
   ungroup() %>% 
+  filter(ClaimYear <= 10) %>% 
   select(-ClaimYear)
 
-estimateFAlt <- function(ct, known){
+prevct2 <- data %>% 
+  rbind(c(2,1,10,1,1,0)) %>% 
+  rbind(c(2,10,10,1,1,0)) %>% 
+  filter(ClaimType == 2) %>% 
+  group_by(ClaimYear, DevelopmentYear) %>% 
+  summarize(Total = sum(ClaimCost)) %>%
+  mutate(Total = cumsum(Total)) %>% 
+  spread(value = Total, key = DevelopmentYear) %>% 
+  ungroup() %>% 
+  filter(ClaimYear <= 10) %>% 
+  select(-ClaimYear)
+
+estimateFAlt <- function(ct, known = 0){
   
-  n <- nrow(ct)
+  n <- ncol(ct)
+  
+  r <- nrow(ct)
   
   fVec <- c()
   
   for(i in 1:(n-1)){
     
-    f <- sum(ct[1:(n-i),i+1])/sum(ct[1:(n-i),i])
+    f <- sum(ct[1:min(r-i+known, r),i+1])/sum(ct[1:min(r-i+known, r),i])
     
     fVec[i] <- f
     
@@ -344,16 +459,68 @@ estimateFAlt <- function(ct, known){
 }
 
 
-fillAlt <- function(){
+fillAlt <- function(ct, known = 0){
   
+  temp <- ct
   
+  n <- ncol(ct)
   
+  fHat <- estimateFAlt(ct, known)
+  
+  if(known < (n-1)){
+  
+    for(i in (known+2):n){
+    
+      for(j in (n-i+known+2):n){
+        
+        temp[i,j] <- temp[i,j-1]*fHat[j-1]
+      
+      }
+      
+    }
+
+  }
+  
+  temp
   
 }
 
+#Branch 1
+
+uc1 <- c()
+
+for(i in 0:8){
+  
+  val <- sum(fillAlt(prevct1, i)[,10])
+  
+  uc1 <- c(uc1, val)
+  
+}
+
+kable(cbind(c(0:8),uc1), caption = "Ultimate claim amounts over observed years for branch 1", 
+      col.names = c("Year","UCA"))
+
+#Branch 2
+
+uc2 <- c()
+
+for(i in 0:8){
+  
+  val <- sum(fillAlt(prevct2, i)[,10])
+  
+  uc2 <- c(uc2, val)
+  
+}
+
+kable(cbind(c(0:8),uc2), caption = "Ultimate claim amounts over observed years for branch 2", 
+      col.names = c("Year","UCA"))
 
 ```
 
+#Exercise 4
 
+```{r echo = FALSE, warning = FALSE}
+
+```
 
 
