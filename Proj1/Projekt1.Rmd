@@ -272,6 +272,7 @@ grid.arrange(plotcdfN22, plothistN22, nrow = 1)
 
 ```
 
+\newpage
 #Exercise 2
 
 In this exercise we analyze the claim costs over time for each of the two insurance branches. We are looking for possible patterns in the claim costs over time by analyzing the distribution of the claim costs. The following plots look at the average claim cost for each month and insurance branch.
@@ -284,7 +285,8 @@ data %>%
   filter(ClaimType == 1) %>% 
   ggplot(aes(x = Month, y = MeanClaim)) +
     geom_point() +
-    ylab("Mean Claim")
+    ylab("Mean Claim") +
+    ggtitle("Average claim cost for each month for branch 1")
 
 data %>% 
   group_by(ClaimType, Month)  %>% 
@@ -292,7 +294,8 @@ data %>%
   filter(ClaimType == 2) %>% 
   ggplot(aes(x = Month, y = MeanClaim)) +
     geom_point() +
-    ylab("Mean Claim")
+    ylab("Mean Claim") +
+    ggtitle("Average claim cost for each month for branch 2")
 
 ```
 
@@ -307,7 +310,7 @@ data %>%
   ggplot(aes(x = ClaimDay, y = MeanClaim)) +
     geom_point() +
     ylab("Mean Claim") +
-    ggtitle("Branch 1")
+    ggtitle("Average claim cost for each day for branch 1")
     
 
 #MeanClaim per day over time, ClaimType 2
@@ -318,7 +321,7 @@ data %>%
   ggplot(aes(x = ClaimDay, y = MeanClaim)) +
     geom_point()  +
     ylab("Mean Claim")+
-    ggtitle("Branch 2")
+    ggtitle("Average claim cost for each day for branch 2")
 
 #MeanClaim per season for each ClaimTpe
 # data %>% 
@@ -348,6 +351,7 @@ From the plots above we cannot see any systematic correlation between claims and
 
 #Exercise 3 
 
+In order to accuratetly assess the total claim cost for the entire company it of importance to look at whether we have dependence between the two insurance branches or not. We look at the total number of claims for each branch on a daily basis and plot the number of claims against each other, for each season.
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -368,14 +372,17 @@ aggClaims <- inner_join(t1Counts, t2Counts, by = "ClaimDay") %>%
 
 ggplot(aggClaims, aes(x= Counts.x, y = Counts.y)) +
   geom_point() +
-  facet_wrap(~Season, scales = "free")
+  facet_wrap(~Season, scales = "free") +
+  ggtitle("Daily number of claims for each branch plotted \nagainst each other for seasons 1 and 2") +
+  xlab("Branch 1") +
+  ylab("Branch 2")
 
 
 #There does seem to be daily correlation in the number of claims which we obviously have to deal with in one way or another
 
 ```
 
-We note from the figures above that there seems to be some kind of positive correlation between the two insurance products, meaning that we cannot model the claims for each product separatley, but that we instead have to model the jointly. We can however still model the claim costs of the two branches independently as we saw in the previous exercise.
+We note from the figures above that there seems to be some kind of positive correlation between the two insurance products, meaning that we cannot model the claims for each product separatley, but that we instead have to model them jointly. We can however still model the claim costs of the two branches independently as we saw in the previous exercise.
 
 #Exercise 4
 
