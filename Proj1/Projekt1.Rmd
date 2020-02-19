@@ -55,6 +55,7 @@ data %>%
              labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
   ylab("Count")
 ```
+
 From the previous histograms it seems reasonable to divide the months into two homogenous groups with their own claim processes. One group for months $(1-4, 9-12)$ and one for months $(5-8)$. We also wish to examine if we have homogeneity between the different years during which the claim data was collected.
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
@@ -83,7 +84,7 @@ data %>%
   ggtitle("Number of claims by year for branch 2")
 ```
 
-We note from the previous plots that there does not seem to be any major difference in the number of claims between the years.
+We note from the previous plots that there does not seem to be any major difference in the number of claims between the years. We can therefore model the data separately for low intensity periods and high intensity periods for each branch. 
 
 We now wish to fit homogeneous Poisson distributions $N_ij$ (where $i$ represents the insurance type and $j$ represents the season) to the months of each season and each insurance product.
 
@@ -141,9 +142,7 @@ estimatedLambda <- (aggregatedData %>%
 #   ylab("Density")
 ```
 
-The Poisson variables which have been fit for the different seasons and insurance branches have had their parameter $\lambda_{ij}$ estimated through maximum-likelihood methods using the data from the 10 previous years. We note that we seem to have overdispersion for $N_{11}$ and $N_{12}$, meaning that the variance is not truly equal to the expectation which is the case for a Poisson variable. For $N_{21}$ and $N_{22}$ date does however seem to indicate that we have underdispersion, meaning that the variance is lower than the expectation. 
-
-To solve this we fit negative binomial distributions to $N_{ij}$ as this distribution does not have the property of equal expectation and variance as the Poisson distribution does.
+The Poisson variables which have been fit for the different seasons and insurance branches and have had their parameter $\lambda_{ij}$ estimated through maximum-likelihood methods using the data from the 10 previous years. However, we note from the plots below that the poisson distribution does not fit the data very well. We seem to have overdispersion for $N_{11}$ and $N_{12}$, meaning that the variance is not truly equal to the expectation which is the case for a Poisson variable. For $N_{21}$ and $N_{22}$ date does however seem to indicate that we have underdispersion, meaning that the variance is lower than the expectation. Therefore we also fit negative binomial distributions to $N_{ij}$ as this distribution does not have the property of equal expectation and variance as the poisson distribution does. We can clearly see that the negative binomial distribution models our data better than the poisson distribution. We can also see this by examing QQ-plots, in Appendix, between the empirical distribution of our data compared to the poisson distribution and negative binomial distribution. 
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -174,7 +173,8 @@ plotcdfN11 <- ggplot(df, aes(x, ecdf, colour = ggg)) +
   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
   xlab("Number of claims") + 
-  ylab("Empirical Cumulative Distribution Function")
+  ylab("Empirical Cumulative Distribution Function") +
+  ggtitle(expression("Empirical distribution of" ~ N[11]))
 
 # plothistN11 <- ggplot(df, aes(x=x, fill = ggg)) +
 #   geom_histogram(aes(y = ..density..),position = "dodge2", breaks = 1:35) +
@@ -203,7 +203,8 @@ plotcdfN12 <- ggplot(df, aes(x, ecdf, colour = ggg)) +
   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
   xlab("Number of claims") + 
-  ylab("Empirical Cumulative Distribution Function")
+  ylab("Empirical Cumulative Distribution Function")+
+  ggtitle(expression("Empirical distribution of" ~ N[12]))
 
 plothistN12 <-  ggplot(df, aes(x=x, fill = ggg)) +
   geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
@@ -229,7 +230,8 @@ plotcdfN21 <- ggplot(df, aes(x, ecdf, colour = ggg)) +
   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
   xlab("Number of claims") + 
-  ylab("Empirical Cumulative Distribution Function")
+  ylab("Empirical Cumulative Distribution Function")+
+  ggtitle(expression("Empirical distribution of" ~ N[21]))
 
 plothistN21 <-  ggplot(df, aes(x=x, fill = ggg)) +
   geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
@@ -255,7 +257,8 @@ plotcdfN22 <- ggplot(df, aes(x, ecdf, colour = ggg)) +
   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
   xlab("Number of claims") + 
-  ylab("Empirical Cumulative Distribution Function")
+  ylab("Empirical Cumulative Distribution Function")+
+  ggtitle(expression("Empirical distribution of" ~ N[22]))
 
 plothistN22 <- ggplot(df, aes(x=x, fill = ggg)) +
   geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
@@ -275,53 +278,90 @@ grid.arrange(plotcdfN22, plothistN22, nrow = 1)
 \newpage
 #Exercise 2
 
-In this exercise we analyze the claim costs over time for each of the two insurance branches. We are looking for possible patterns in the claim costs over time by analyzing the distribution of the claim costs. The following plots look at the average claim cost for each month and insurance branch.
+In this exercise we analyze the claim costs over time for each of the two insurance branches. We are looking for possible patterns in the claim costs over time by analyzing the distribution of the claim costs. In the following figures we can observe the average logarithm of the claim cost for each moth and insuranse branch. The use of logarithm is used to make the figure more interpretable. 
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
-
+#Monthly boxplot
 data %>% 
-  group_by(ClaimType, Month)  %>% 
-  summarize(MeanClaim = mean(ClaimCost)) %>% 
-  filter(ClaimType == 1) %>% 
-  ggplot(aes(x = Month, y = MeanClaim)) +
-    geom_point() +
-    ylab("Mean Claim") +
-    ggtitle("Average claim cost for each month for branch 1")
+  mutate(Month = as.factor(Month)) %>% 
+ # filter(ClaimType == 2) %>% 
+  ggplot(aes(x= Month, y = log(ClaimCost))) +
+  geom_boxplot() +
+  facet_wrap(~ ClaimType, labeller = labeller(ClaimType = c("1" = "Branch 1","2" = "Branch 2"))) +
+  ggtitle("Boxplot of log of claim cost vs month")
 
-data %>% 
-  group_by(ClaimType, Month)  %>% 
-  summarize(MeanClaim = mean(ClaimCost)) %>% 
-  filter(ClaimType == 2) %>% 
-  ggplot(aes(x = Month, y = MeanClaim)) +
-    geom_point() +
-    ylab("Mean Claim") +
-    ggtitle("Average claim cost for each month for branch 2")
+#Yearly boxplot
+# data %>% 
+#   mutate(Year = as.factor(Year)) %>% 
+#  # filter(ClaimType == 2) %>% 
+#   ggplot(aes(x= Year, y = log(ClaimCost))) +
+#   geom_boxplot() +
+#   facet_wrap(~ ClaimType, labeller = labeller(ClaimType = c("1" = "Branch 1","2" = "Branch 2"))) +
+#   ggtitle("Boxplot of log of claim cost vs month")
+
+# plotClaimCostM1 <- data %>% 
+#   group_by(ClaimType, Month)  %>% 
+#   summarize(MeanClaim = mean(ClaimCost)) %>% 
+#   filter(ClaimType == 1) %>% 
+#   ggplot(aes(x = Month, y = MeanClaim)) +
+#     geom_point() +
+#     ylab("Mean Claim") +
+#     ggtitle("Average claim cost for each \nmonth for branch 1")
+# 
+# plotClaimCostM2 <- data %>% 
+#   group_by(ClaimType, Month)  %>% 
+#   summarize(MeanClaim = mean(ClaimCost)) %>% 
+#   filter(ClaimType == 2) %>% 
+#   ggplot(aes(x = Month, y = MeanClaim)) +
+#     geom_point() +
+#     ylab("Mean Claim") +
+#     ggtitle("Average claim cost for each \nmonth for branch 2")
+# 
+# grid.arrange(plotClaimCostM1, plotClaimCostM2, nrow = 1)
 
 ```
 
-It seems as if the avergae claim costs are time independent, atleast when aggregated on a monthly basis, from the two previous plots. We can also observe the mean of the claim sizes for every day in order to further strengthen the assumption of time independence.
+It seems as if the avergae claim costs are time independent, atleast when aggregated on a monthly basis, from the two previous plots. The same can also be said if aggregated on a yearly basis.  We can also observe the mean of the claim sizes for every day in order to further strengthen the assumption of time independence.
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
+# aggregatedData %>% 
+#   group_by(ClaimDay, ClaimType) %>% 
+#   summarize(Mean = mean(NumberOfClaims)) %>% 
+#   ggplot(aes(x=ClaimDay, y = Mean)) +
+#   geom_point()
+#   head()
+# 
+# data %>% 
+#   mutate(ClaimDay = as.numeric(ClaimDay)) %>% 
+#  # filter(ClaimType == 2) %>% 
+#   ggplot() +
+#   geom_point(aes(x= ClaimDay, y = log(ClaimCost)), alpha= 0.05) +
+#   facet_wrap(~ ClaimType, labeller = labeller(ClaimType = c("1" = "Branch 1","2" = "Branch 2"))) +
+#   ggtitle("Boxplot of log of claim cost vs month")
+
 #MeanClaim per day over time, ClaimType 1
 data %>% 
-  group_by(ClaimType, Year, ClaimDay)  %>% 
+  group_by(ClaimType, ClaimDay)  %>% 
   summarize(MeanClaim = mean(ClaimCost)) %>% 
-  filter(ClaimType == 1) %>% 
+  #filter(ClaimType == 1) %>% 
   ggplot(aes(x = ClaimDay, y = MeanClaim)) +
     geom_point() +
     ylab("Mean Claim") +
-    ggtitle("Average claim cost for each day for branch 1")
+    facet_wrap(~ ClaimType, scales = "free",  labeller = labeller(ClaimType = c("1" = "Branch 1","2" = "Branch 2"))) +
+    ggtitle("Average claim cost for each day")
     
 
 #MeanClaim per day over time, ClaimType 2
-data %>% 
-  group_by(ClaimType, Year, ClaimDay)  %>% 
-  summarize(MeanClaim = mean(ClaimCost)) %>% 
-  filter(ClaimType == 2) %>% 
-  ggplot(aes(x = ClaimDay, y = MeanClaim)) +
-    geom_point()  +
-    ylab("Mean Claim")+
-    ggtitle("Average claim cost for each day for branch 2")
+# plotClaimCostD2 <- data %>% 
+#   group_by(ClaimType, ClaimDay)  %>% 
+#   summarize(MeanClaim = mean(ClaimCost)) %>% 
+#   filter(ClaimType == 2) %>% 
+#   ggplot(aes(x = ClaimDay, y = MeanClaim)) +
+#     geom_point()  +
+#     ylab("Mean Claim")+
+#     ggtitle("Average claim cost for \neach day for branch 2")
+# 
+# grid.arrange(plotClaimCostD1, plotClaimCostD2, nrow = 1)
 
 #MeanClaim per season for each ClaimTpe
 # data %>% 
@@ -332,7 +372,8 @@ data %>%
 #     geom_col()
 ```
 
-We note from the figures that the average claim sizes seem to be time independet. An interesting factor is however that all extremely deviating claim costs seem to occur during the summer (i.e period 2). In conclussion it seems as if the claim costs are independent of time. Another thing that we want to examine is whether or not we have independence between the average claim costs and the number of claims.
+We note from the figures that the average claim sizes each day seem to be time independet. An interesting factor is however that all extremely deviating claim costs seem to occur during the summer (i.e period 2), which may be a result of a lower number of claims during this period. In conclussion it seems as if the claim costs are independent of time. 
+Another thing that we want to examine is whether or not we have independence between the average claim costs and the number of claims.
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
 
@@ -348,6 +389,41 @@ data %>%
 ```
 
 From the plots above we cannot see any systematic correlation between claims and claim costs for any of the combinations, meaning that we can model the number of claims and claim costs independantly. We do not observe any time dependencies in terms of average claim costs and there seem to be no systematic correlation between claims and claim costs. In conclussion, the lack of time dependencies for the claim costs means that we can model the claim costs with the assumtion that the claim costs are time independant. 
+
+
+We also want to investigate the distribution of the claim costs. 
+
+```{r echo = FALSE ,warning = FALSE, message = FALSE}
+par(mfrow=c(2,2))
+
+hist(log((data %>% 
+  filter(ClaimType == 1))$ClaimCost), freq = FALSE, breaks = 50, xlab = "Claim Cost", main = "Histogram of log(claim cost) \nfor branch 1")
+
+hist((data %>% 
+  filter(ClaimType == 1))$ClaimCost, freq = FALSE, xlim = c(0, 2*10^5), breaks = 100, xlab = "Claim Cost", main = "Zoomed histogram of claim cost \nfor branch 1")
+
+hist(log((data %>% 
+  filter(ClaimType == 2))$ClaimCost), freq = FALSE, breaks = 50, xlab = "Claim Cost", main = "Histogram of log(claim cost) \nfor branch 2")
+
+hist((data %>% 
+  filter(ClaimType == 2))$ClaimCost, freq = FALSE, xlim = c(0, 4*10^5), breaks = 1000, xlab = "Claim Cost", main = "Zoomed histogram of claim cost \nfor branch 2")
+
+dev.off()
+# 
+# data %>% 
+#   filter(ClaimType == 1) %>% 
+#   ggplot(aes(x= log(ClaimCost))) +
+#   geom_histogram() +
+#   facet_wrap(~ c(Season))
+# 
+# data %>% 
+#   filter(ClaimType == 2) %>% 
+#   ggplot(aes(x= ClaimCost)) +
+#   geom_histogram() +
+#   xlim(0, 4*10^5) +
+#   facet_wrap(~ c(Season))
+```
+
 
 #Exercise 3 
 
@@ -371,7 +447,7 @@ aggClaims <- inner_join(t1Counts, t2Counts, by = "ClaimDay") %>%
   
 
 ggplot(aggClaims, aes(x= Counts.x, y = Counts.y)) +
-  geom_point() +
+  geom_point(alpha = 0.2) +
   facet_wrap(~Season, scales = "free") +
   ggtitle("Daily number of claims for each branch plotted \nagainst each other for seasons 1 and 2") +
   xlab("Branch 1") +
@@ -548,20 +624,21 @@ We can also observe the how the purchase of both covers affect the distribution 
 ```{r echo = FALSE}
 #TotalCosts for no XL-cover
 
-(samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>% 
+plotWithoutXL <- (samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>% 
   data.frame() %>% 
   setNames("Cost") %>% 
   ggplot(aes(x = Cost)) +
   geom_histogram(bins = 30) +
-  ggtitle("Total costs across both branches without XL-cover")
+  ggtitle("Total costs across both \nbranches without XL-cover")
 
-(samples2$Total[samples2$Type == 1] + samples2$Total[samples2$Type == 2]) %>% 
+plotWithXL <- (samples2$Total[samples2$Type == 1] + samples2$Total[samples2$Type == 2]) %>% 
   data.frame() %>% 
   setNames("Cost") %>% 
   ggplot(aes(x = Cost)) +
   geom_histogram(bins = 30) +
-  ggtitle("Total costs across both branches with XL-cover")
+  ggtitle("Total costs across both \nbranches with XL-cover")
 
+grid.arrange(plotWithoutXL, plotWithXL, nrow = 1)
 ```
 
 Once again we see that the distribution is lighter-tailed whilst having a higher expectation.
@@ -649,21 +726,21 @@ We can also examine how the purchase of both covers impact the overall annual cl
 ```{r echo = FALSE}
 #Total costs
 
-(samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>% 
+plotWithoutSL <- (samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>% 
   data.frame() %>% 
   setNames("Total") %>% 
   ggplot(aes(x = Total)) +
   geom_histogram(bins = 30) +
   ggtitle("Total costs across both branches without SL-covers")
 
-(samples3$Total[samples3$Type == 1] + samples3$Total[samples3$Type == 2]) %>% 
+plotWithSL <- (samples3$Total[samples3$Type == 1] + samples3$Total[samples3$Type == 2]) %>% 
   data.frame() %>% 
   setNames("Total") %>% 
   ggplot(aes(x = Total)) +
   geom_histogram(bins = 30) +
   ggtitle("Total costs across both branches with SL-covers")
 
-
+grid.arrange(plotWithoutSL, plotWithSL, nrow = 1)
 ```
 
 By purchasing both covers we increase the expectation slightly whilst also skewing the distribution positivley as in the case of the individual cost distributions of the branches.
