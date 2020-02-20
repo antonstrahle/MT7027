@@ -16,7 +16,10 @@ In this exercsie we want to find trends in the data for the two insurance branch
 
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(knitr))
-
+library(fitdistrplus)
+library(MASS)
+library(actuar)
+library(gridExtra)
 n <- 1000 #STORLEK FÖR SIMULERINGAR I 4,5,6,7
 
 #standard theme
@@ -145,135 +148,228 @@ estimatedLambda <- (aggregatedData %>%
 The Poisson variables which have been fit for the different seasons and insurance branches and have had their parameter $\lambda_{ij}$ estimated through maximum-likelihood methods using the data from the 10 previous years. However, we note from the plots below that the poisson distribution does not fit the data very well. We seem to have overdispersion for $N_{11}$ and $N_{12}$, meaning that the variance is not truly equal to the expectation which is the case for a Poisson variable. For $N_{21}$ and $N_{22}$ date does however seem to indicate that we have underdispersion, meaning that the variance is lower than the expectation. Therefore we also fit negative binomial distributions to $N_{ij}$ as this distribution does not have the property of equal expectation and variance as the poisson distribution does. We can clearly see that the negative binomial distribution models our data better than the poisson distribution. We can also see this by examing QQ-plots, in Appendix, between the empirical distribution of our data compared to the poisson distribution and negative binomial distribution. 
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
+# 
+# library(fitdistrplus)
+# # ggplot(N11, aes(sample = n)) +
+# #   stat_qq(distribution = qpois, dparams = mean(N11$n)) +
+# #   stat_qq_line(distribution = qpois, dparams = mean(N11$n))
+# 
+# #Vi borde undersöka histogram, fördelningsfunktion och qqplot för antal skador. 
+# #Detta gör vi för varje säsong samt produkt
+# #Jämför med poisson samt negativ binomial (blandad poisson)
+# 
+# #Plots for N_11
+# N11 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
+#   summarise(n = n()) %>% 
+#   filter(ClaimType ==1, Season == 1)
+# 
+# fit <- fitdistr(N11$n, "Negative Binomial")
+# set.seed(123)
+# df <- data.frame(x = c(N11$n, rpois(10000, mean(N11$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N11$n),10000,10000))))
+# 
+# df <- df[order(df$x), ]
+# df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
+# 
+# plotcdfN11 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
+#   geom_line() + 
+#   scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+#   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
+#   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
+#   xlab("Number of claims") + 
+#   ylab("Empirical Cumulative Distribution Function") +
+#   ggtitle(expression("Empirical distribution of" ~ N[11]))
+# 
+# # plothistN11 <- ggplot(df, aes(x=x, fill = ggg)) +
+# #   geom_histogram(aes(y = ..density..),position = "dodge2", breaks = 1:35) +
+# #   scale_fill_manual(values=c("black", "blue", "red"))
+#   
+# plothistN11 <- ggplot(df, aes(x=x, fill = ggg)) +
+#   geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
+#   scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+#   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
+#   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
+#   xlab("Number of claims") 
+# 
+# #Plots for N_12
+# N12 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
+#   summarise(n = n()) %>% 
+#   filter(ClaimType ==1, Season == 2)
+# 
+# fit <- fitdistr(N12$n, "Negative Binomial")
+# df <- data.frame(x = c(N12$n, rpois(10000, mean(N12$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N12$n),10000,10000))))
+# 
+# df <- df[order(df$x), ]
+# df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
+# plotcdfN12 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
+#   geom_line() + 
+#   scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+#   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
+#   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
+#   xlab("Number of claims") + 
+#   ylab("Empirical Cumulative Distribution Function")+
+#   ggtitle(expression("Empirical distribution of" ~ N[12]))
+# 
+# plothistN12 <-  ggplot(df, aes(x=x, fill = ggg)) +
+#   geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
+#   scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+#   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
+#   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9))+
+#   xlab("Number of claims") 
+# 
+# 
+# #Plots for N_21
+# N21 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
+#   summarise(n = n()) %>% 
+#   filter(ClaimType ==2, Season == 1)
+# 
+# fit <- fitdistr(N21$n, "Negative Binomial")
+# df <- data.frame(x = c(N21$n, rpois(10000, mean(N21$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N21$n),10000,10000))))
+# 
+# df <- df[order(df$x), ]
+# df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
+# plotcdfN21 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
+#   geom_line() + 
+#   scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+#   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
+#   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
+#   xlab("Number of claims") + 
+#   ylab("Empirical Cumulative Distribution Function")+
+#   ggtitle(expression("Empirical distribution of" ~ N[21]))
+# 
+# plothistN21 <-  ggplot(df, aes(x=x, fill = ggg)) +
+#   geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
+#   scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+#   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
+#   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
+#   xlab("Number of claims") 
+# 
+# 
+# #Plots for N_22
+# N22 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
+#   summarise(n = n()) %>% 
+#   filter(ClaimType == 2, Season == 2)
+# 
+# fit <- fitdistr(N22$n, "Negative Binomial")
+# df <- data.frame(x = c(N22$n, rpois(10000, mean(N22$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N22$n),10000,10000))))
+# 
+# df <- df[order(df$x), ]
+# df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
+# plotcdfN22 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
+#   geom_line() + 
+#   scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+#   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
+#   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
+#   xlab("Number of claims") + 
+#   ylab("Empirical Cumulative Distribution Function")+
+#   ggtitle(expression("Empirical distribution of" ~ N[22]))
+# 
+# plothistN22 <- ggplot(df, aes(x=x, fill = ggg)) +
+#   geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
+#   scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
+#   scale_x_continuous(breaks = seq(0, max(df$x), by = 2 )) +
+#   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
+#   xlab("Number of claims") 
+# 
+# library(gridExtra)
+# grid.arrange(plotcdfN11, plothistN11, nrow = 1)
+# grid.arrange(plotcdfN12, plothistN12, nrow = 1)
+# grid.arrange(plotcdfN21, plothistN21, nrow = 1)
+# grid.arrange(plotcdfN22, plothistN22, nrow = 1)
+```
 
-library(fitdistrplus)
-# ggplot(N11, aes(sample = n)) +
-#   stat_qq(distribution = qpois, dparams = mean(N11$n)) +
-#   stat_qq_line(distribution = qpois, dparams = mean(N11$n))
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
-#Vi borde undersöka histogram, fördelningsfunktion och qqplot för antal skador. 
-#Detta gör vi för varje säsong samt produkt
-#Jämför med poisson samt negativ binomial (blandad poisson)
-
-#Plots for N_11
 N11 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-  summarise(n = n()) %>% 
+  summarise(n = n()) %>%
   filter(ClaimType ==1, Season == 1)
 
-fit <- fitdistr(N11$n, "Negative Binomial")
-set.seed(123)
-df <- data.frame(x = c(N11$n, rpois(10000, mean(N11$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N11$n),10000,10000))))
-
-df <- df[order(df$x), ]
-df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-
-plotcdfN11 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
-  geom_line() + 
-  scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
-  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
-  theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-  xlab("Number of claims") + 
-  ylab("Empirical Cumulative Distribution Function") +
-  ggtitle(expression("Empirical distribution of" ~ N[11]))
-
-# plothistN11 <- ggplot(df, aes(x=x, fill = ggg)) +
-#   geom_histogram(aes(y = ..density..),position = "dodge2", breaks = 1:35) +
-#   scale_fill_manual(values=c("black", "blue", "red"))
-  
-plothistN11 <- ggplot(df, aes(x=x, fill = ggg)) +
-  geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
-  scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
-  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
-  theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-  xlab("Number of claims") 
-
-#Plots for N_12
 N12 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-  summarise(n = n()) %>% 
+  summarise(n = n()) %>%
   filter(ClaimType ==1, Season == 2)
 
-fit <- fitdistr(N12$n, "Negative Binomial")
-df <- data.frame(x = c(N12$n, rpois(10000, mean(N12$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N12$n),10000,10000))))
-
-df <- df[order(df$x), ]
-df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-plotcdfN12 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
-  geom_line() + 
-  scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
-  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
-  theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-  xlab("Number of claims") + 
-  ylab("Empirical Cumulative Distribution Function")+
-  ggtitle(expression("Empirical distribution of" ~ N[12]))
-
-plothistN12 <-  ggplot(df, aes(x=x, fill = ggg)) +
-  geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
-  scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
-  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
-  theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9))+
-  xlab("Number of claims") 
-
-
-#Plots for N_21
 N21 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-  summarise(n = n()) %>% 
+  summarise(n = n()) %>%
   filter(ClaimType ==2, Season == 1)
 
-fit <- fitdistr(N21$n, "Negative Binomial")
-df <- data.frame(x = c(N21$n, rpois(10000, mean(N21$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N21$n),10000,10000))))
-
-df <- df[order(df$x), ]
-df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-plotcdfN21 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
-  geom_line() + 
-  scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
-  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
-  theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-  xlab("Number of claims") + 
-  ylab("Empirical Cumulative Distribution Function")+
-  ggtitle(expression("Empirical distribution of" ~ N[21]))
-
-plothistN21 <-  ggplot(df, aes(x=x, fill = ggg)) +
-  geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
-  scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
-  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
-  theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-  xlab("Number of claims") 
-
-
-#Plots for N_22
 N22 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-  summarise(n = n()) %>% 
-  filter(ClaimType == 2, Season == 2)
+  summarise(n = n()) %>%
+  filter(ClaimType ==2, Season == 2)
 
-fit <- fitdistr(N22$n, "Negative Binomial")
-df <- data.frame(x = c(N22$n, rpois(10000, mean(N22$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N22$n),10000,10000))))
+x=seq(0, max(N11$n), 1)
 
-df <- df[order(df$x), ]
-df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-plotcdfN22 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
-  geom_line() + 
-  scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
-  scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
-  theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-  xlab("Number of claims") + 
-  ylab("Empirical Cumulative Distribution Function")+
-  ggtitle(expression("Empirical distribution of" ~ N[22]))
+fitPois <- fitdist(N11$n, "pois")
+dpo = dpois(x, lambda=fitPois$estimate["lambda"])
 
-plothistN22 <- ggplot(df, aes(x=x, fill = ggg)) +
-  geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
-  scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
-  scale_x_continuous(breaks = seq(0, max(df$x), by = 2 )) +
-  theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-  xlab("Number of claims") 
+fitNegBin <- fitdist(N11$n, "nbinom")
+dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
 
-library(gridExtra)
-grid.arrange(plotcdfN11, plothistN11, nrow = 1)
-grid.arrange(plotcdfN12, plothistN12, nrow = 1)
-grid.arrange(plotcdfN21, plothistN21, nrow = 1)
-grid.arrange(plotcdfN22, plothistN22, nrow = 1)
+plot.legend <- c("Poisson", "Negative Binomial")
+hist(N11$n, freq = FALSE, breaks = max(N11$n), xlab = "Claims", ylim = c(0, 0.12), main = "Branch 1 Season 1")
+lines(x=x, y=dpo, col="red", lwd = 2)
+lines(x=x, y=dneg, col="blue", lwd = 2, lty = "dashed")
+legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
+
+cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2)
+qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"))
+
+
+x=seq(0, max(N12$n), 1)
+
+fitPois <- fitdist(N12$n, "pois")
+dpo = dpois(x, lambda=fitPois$estimate["lambda"])
+
+fitNegBin <- fitdist(N12$n, "nbinom")
+dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
+
+plot.legend <- c("Poisson", "Negative Binomial")
+hist(N12$n, freq = FALSE, breaks = max(N12$n), xlab = "Claims", ylim = c(0, 0.50), main = "Branch 1 Season 2")
+lines(x=x, y=dpo, col="red", lwd = 2)
+lines(x=x, y=dneg, col="blue", lwd = 2, lty = "dashed")
+legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
+
+cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2)
+qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"))
+
+
+x=seq(0, max(N21$n), 1)
+
+fitPois <- fitdist(N21$n, "pois")
+dpo = dpois(x, lambda=fitPois$estimate["lambda"])
+
+fitNegBin <- fitdist(N21$n, "nbinom")
+dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
+
+plot.legend <- c("Poisson", "Negative Binomial")
+hist(N21$n, freq = FALSE, breaks = max(N21$n), xlab = "Claims", ylim = c(0, 0.15), main = "Branch 2 Season 1")
+lines(x=x, y=dpo, col="red", lwd = 2)
+lines(x=x, y=dneg, col="blue", lwd = 2, lty = "dashed")
+legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
+
+cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2)
+qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"))
+
+
+
+x=seq(0, max(N22$n), 1)
+
+fitPois <- fitdist(N22$n, "pois")
+dpo = dpois(x, lambda=fitPois$estimate["lambda"])
+
+fitNegBin <- fitdist(N22$n, "nbinom")
+dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
+
+plot.legend <- c("Poisson", "Negative Binomial")
+hist(N22$n, freq = FALSE, breaks = max(N22$n), xlab = "Claims", ylim = c(0, 0.80),main = "Branch 2 Season 2")
+lines(x=x, y=dpo, col="red", lwd = 2)
+lines(x=x, y=dneg, col="blue", lwd = 2,  lty = "dashed")
+legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
+
+cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2)
+qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"))
+
 
 ```
+
 
 \newpage
 #Exercise 2
@@ -290,54 +386,11 @@ data %>%
   facet_wrap(~ ClaimType, labeller = labeller(ClaimType = c("1" = "Branch 1","2" = "Branch 2"))) +
   ggtitle("Boxplot of log of claim cost vs month")
 
-#Yearly boxplot
-# data %>% 
-#   mutate(Year = as.factor(Year)) %>% 
-#  # filter(ClaimType == 2) %>% 
-#   ggplot(aes(x= Year, y = log(ClaimCost))) +
-#   geom_boxplot() +
-#   facet_wrap(~ ClaimType, labeller = labeller(ClaimType = c("1" = "Branch 1","2" = "Branch 2"))) +
-#   ggtitle("Boxplot of log of claim cost vs month")
-
-# plotClaimCostM1 <- data %>% 
-#   group_by(ClaimType, Month)  %>% 
-#   summarize(MeanClaim = mean(ClaimCost)) %>% 
-#   filter(ClaimType == 1) %>% 
-#   ggplot(aes(x = Month, y = MeanClaim)) +
-#     geom_point() +
-#     ylab("Mean Claim") +
-#     ggtitle("Average claim cost for each \nmonth for branch 1")
-# 
-# plotClaimCostM2 <- data %>% 
-#   group_by(ClaimType, Month)  %>% 
-#   summarize(MeanClaim = mean(ClaimCost)) %>% 
-#   filter(ClaimType == 2) %>% 
-#   ggplot(aes(x = Month, y = MeanClaim)) +
-#     geom_point() +
-#     ylab("Mean Claim") +
-#     ggtitle("Average claim cost for each \nmonth for branch 2")
-# 
-# grid.arrange(plotClaimCostM1, plotClaimCostM2, nrow = 1)
-
 ```
 
 It seems as if the avergae claim costs are time independent, atleast when aggregated on a monthly basis, from the two previous plots. The same can also be said if aggregated on a yearly basis.  We can also observe the mean of the claim sizes for every day in order to further strengthen the assumption of time independence.
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
-# aggregatedData %>% 
-#   group_by(ClaimDay, ClaimType) %>% 
-#   summarize(Mean = mean(NumberOfClaims)) %>% 
-#   ggplot(aes(x=ClaimDay, y = Mean)) +
-#   geom_point()
-#   head()
-# 
-# data %>% 
-#   mutate(ClaimDay = as.numeric(ClaimDay)) %>% 
-#  # filter(ClaimType == 2) %>% 
-#   ggplot() +
-#   geom_point(aes(x= ClaimDay, y = log(ClaimCost)), alpha= 0.05) +
-#   facet_wrap(~ ClaimType, labeller = labeller(ClaimType = c("1" = "Branch 1","2" = "Branch 2"))) +
-#   ggtitle("Boxplot of log of claim cost vs month")
 
 #MeanClaim per day over time, ClaimType 1
 data %>% 
@@ -394,22 +447,121 @@ From the plots above we cannot see any systematic correlation between claims and
 We also want to investigate the distribution of the claim costs. 
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
-par(mfrow=c(2,2))
+par(mfrow=c(2,2), cex=0.6) 
 
-hist(log((data %>% 
-  filter(ClaimType == 1))$ClaimCost), freq = FALSE, breaks = 50, xlab = "Claim Cost", main = "Histogram of log(claim cost) \nfor branch 1")
+cost_type1 <- (data %>% filter(ClaimType == 1))$ClaimCost
+x=seq(0, max(cost_type1), length=1000)
 
-hist((data %>% 
-  filter(ClaimType == 1))$ClaimCost, freq = FALSE, xlim = c(0, 2*10^5), breaks = 100, xlab = "Claim Cost", main = "Zoomed histogram of claim cost \nfor branch 1")
+fitW <- fitdist(cost_type1, "weibull", method = "mle", lower = c(0, 0))
+dwei = dweibull(x, shape=fitW$estimate["shape"], scale=fitW$estimate["scale"])
 
-hist(log((data %>% 
-  filter(ClaimType == 2))$ClaimCost), freq = FALSE, breaks = 50, xlab = "Claim Cost", main = "Histogram of log(claim cost) \nfor branch 2")
+fitG  <- fitdist(cost_type1, "gamma", method = "mle", lower = c(0, 0), start = list(scale = 1, shape = 1))
+dgam = dgamma(x, shape=fitG$estimate["shape"], scale=fitG$estimate["scale"])
 
-hist((data %>% 
-  filter(ClaimType == 2))$ClaimCost, freq = FALSE, xlim = c(0, 4*10^5), breaks = 1000, xlab = "Claim Cost", main = "Zoomed histogram of claim cost \nfor branch 2")
+fitLN <- fitdist(cost_type1, "lnorm")
+dln = dlnorm(x, meanlog=fitLN$estimate["meanlog"], sdlog=fitLN$estimate["sdlog"])
 
+fitP <- fitdist(cost_type1, "pareto", start=list(shape = 1, scale = 500))
+dpar <- dpareto(x, shape = fitP$estimate["shape"], scale = fitP$estimate["scale"])
+
+fitB <- fitdist(cost_type1, "burr", start = list(shape1 = 0.6, shape2 = 3,rate = 1/1000), lower = c(0, 0))
+db <- dburr(x, shape1 = fitB$estimate["shape1"], shape2 = fitB$estimate["shape2"], rate = fitB$estimate["rate"])
+
+plot.legend <- c("Weibull", "Gamma", "LogNormal", "Pareto", "Burr")
+hist(cost_type1, freq = FALSE, breaks = 100, xlim = c(0,150000), xlab = "Claim Cost", main = "Zoomed histogram of claim cost \nfor branch 1")
+lines(x=x, y=dwei, col="red", lwd = 2)
+lines(x=x, y=dgam, col="green", lwd = 2)
+lines(x=x, y=dln, col="blue", lwd = 2)
+lines(x=x, y=dpar, col="orange", lwd = 2)
+lines(x=x, y=db, col="purple", lwd = 2)
+legend("topright", plot.legend, col=c("red", "green", "blue", "orange", "purple"), lwd=2, bty = "n", pt.cex = 0.1)
+
+cdfcomp (list(fitW, fitG , fitLN, fitP, fitB), legendtext = plot.legend, xlim = c(0,100000), fitcol = c("red", "green", "blue", "orange", "purple"))
+qqcomp(list(fitW, fitG , fitLN, fitP, fitB), legendtext = plot.legend, fitcol = c("red", "green", "blue", "orange", "purple"))
+
+
+par(mfrow=c(2,2), cex=0.6) 
+
+cost_type2 <- (data %>% filter(ClaimType == 2))$ClaimCost
+x=seq(0, max(cost_type2), length=1000)
+
+fitW <- fitdist(cost_type2, "weibull", method = "mle", lower = c(0, 0))
+dwei = dweibull(x, shape=fitW$estimate["shape"], scale=fitW$estimate["scale"])
+
+fitG  <- fitdist(cost_type2, "gamma", method = "mle", lower = c(0, 0), start = list(scale = 1, shape = 1))
+dgam = dgamma(x, shape=fitG$estimate["shape"], scale=fitG$estimate["scale"])
+
+fitLN <- fitdist(cost_type2, "lnorm")
+dln = dlnorm(x, meanlog=fitLN$estimate["meanlog"], sdlog=fitLN$estimate["sdlog"])
+
+fitP <- fitdist(cost_type2, "pareto", start=list(shape = 1, scale = 500))
+dpar <- dpareto(x, shape = fitP$estimate["shape"], scale = fitP$estimate["scale"])
+
+fitB <- fitdist(cost_type2, "burr", start = list(shape1 = 0.6, shape2 = 3,rate = 1/1000), lower = c(0, 0))
+db <- dburr(x, shape1 = fitB$estimate["shape1"], shape2 = fitB$estimate["shape2"], rate = fitB$estimate["rate"])
+
+hist(cost_type2, freq = FALSE, xlim = c(0, 4*10^5), breaks = 1000, xlab = "Claim Cost", main = "Zoomed histogram of claim cost \nfor branch 2")
+lines(x=x, y=dwei, col="red", lwd = 2)
+lines(x=x, y=dgam, col="green", lwd = 2)
+lines(x=x, y=dln, col="blue", lwd = 2)
+lines(x=x, y=dpar, col="orange", lwd = 2)
+lines(x=x, y=db, col="purple", lwd = 2)
+legend("topright", plot.legend, col=c("red", "green", "blue", "orange", "purple"), lwd=2, bty = "n", pt.cex = 0.1)
+
+cdfcomp (list(fitW, fitG , fitLN, fitP, fitB), legendtext = plot.legend, xlim = c(0,100000), fitcol = c("red", "green", "blue", "orange", "purple"))
+qqcomp(list(fitW, fitG , fitLN, fitP, fitB), legendtext = plot.legend, fitcol = c("red", "green", "blue", "orange", "purple"))
+
+```
+
+We can see in the histograms that a fitted Burr distribution seems to model the data well, however we can see from the QQ-plots that we run into problems in the tails. 
+
+Therefore we tried to fit different distributions for the tail, compared to the rest of the data. That is, we fit a distribution to claim cost below a chosen number and another distribution for cost above that number. However, all our attempts led to a bad fit. 
+Since we could not achive a good fit using common distributions we fit the data using splines, using the R package `logspline`, which gives a very good fit, however one have to be careful of overfitting when using splines. 
+
+```{r echo = FALSE ,warning = FALSE, message = FALSE}
+library(logspline)
+par(mfrow=c(2,2)) 
+x=seq(0, max(cost_type1), length=1000)
+fit <- logspline(cost_type1)
+hist(cost_type1, freq = FALSE, breaks = 100, xlim = c(0,150000), xlab = "Claim Cost", main = "Zoomed histogram of claim cost \nfor branch 1 with fitted logspline")
+lines(x=x, y=dlogspline(x, fit), col = "black")
+#legend("topright", c("Logspline"), col=c("black"), lwd=2)
+
+qqplot(cost_type1, rlogspline(100000, logspline(cost_type1)), xlab = "Empirical quantiles",ylab = "Logspline quantile",main = "QQ-plot of Claim Cost for \nbranch 1 with fitted logspline")
+abline(0, 1)
+
+x=seq(0, max(cost_type2), length=1000)
+fit <- logspline(cost_type2)
+hist(cost_type2, freq = FALSE, breaks = 1000, xlim = c(0, 4*10^5), xlab = "Claim Cost", main = "Zoomed histogram of claim cost \nfor branch 2 with fitted logspline")
+lines(x=x, y=dlogspline(x, fit), col = "black")
+#legend("topright", c("Logspline"), col=c("black"), lwd=2)
+
+qqplot(cost_type2, rlogspline(100000, logspline(cost_type2)), xlab = "Empirical quantiles",ylab = "Logspline quantile",main = "QQ-plot of Claim Cost for \nbranch 2 with fitted logspline")
+abline(0, 1)
 dev.off()
+
+
 # 
+# 
+# 
+# ###################################################################
+# 
+# 
+# 
+# hist(log(cost_type1), freq = FALSE, breaks = 50, xlab = "Claim Cost", main = "Histogram of log(claim cost) \nfor branch 1")
+# 
+# hist(cost_type1, freq = FALSE, xlim = c(0, 2*10^5), breaks = 100, xlab = "Claim Cost", main = "Zoomed histogram of claim cost \nfor branch 1")
+# lines(x=x, y=serving_dwei, col="red")
+# 
+# 
+# hist(log((data %>% 
+#   filter(ClaimType == 2))$ClaimCost), freq = FALSE, breaks = 50, xlab = "Claim Cost", main = "Histogram of log(claim cost) \nfor branch 2")
+# 
+# hist((data %>% 
+#   filter(ClaimType == 2))$ClaimCost, freq = FALSE, xlim = c(0, 4*10^5), breaks = 1000, xlab = "Claim Cost", main = "Zoomed histogram of claim cost \nfor branch 2")
+# 
+# dev.off()
+# # 
 # data %>% 
 #   filter(ClaimType == 1) %>% 
 #   ggplot(aes(x= log(ClaimCost))) +
@@ -423,6 +575,8 @@ dev.off()
 #   xlim(0, 4*10^5) +
 #   facet_wrap(~ c(Season))
 ```
+
+
 
 
 #Exercise 3 
@@ -803,116 +957,116 @@ We see from the two histograms that the total SL-cover implies a higher expected
 #Appendix
 
 ```{r echo = FALSE, warning= FALSE}
-
-#QQPLOT FOR N11
-
-fit <- fitdistr(N11$n, "Negative Binomial")
-set.seed(123)
-df <- data.frame(x = c(N11$n, rpois(10000, mean(N11$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N11$n),10000,10000))))
-
-df <- df[order(df$x), ]
-df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-
-emp <- (df %>% filter(ggg == 1))$x
-pois <- (df %>% filter(ggg == 2))$x
-negbin <- (df %>% filter(ggg == 3))$x
-
-qqplot(emp, negbin, 
-       xlim = range(emp), ylim = range(negbin), 
-       xlab = "Empirical distribution", ylab = "Other distributions", col = "blue", pch = 3, main = expression("QQ-plot for" ~ N[11]))
-par(new=TRUE)
-qqplot(emp, pois, 
-       xlim = range(emp), ylim = range(negbin), 
-       xlab = "Empirical distribution", 
-       ylab = "Other distributions",
-       col = "green")
-abline(a = 0, b = 1)
-legend("topleft", legend = c("NegBin", "Pois"), pch = 19, col = c("blue", "green"))
-
-#QQPLOT FOR N12
-
-N12 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-  summarise(n = n()) %>% 
-  filter(ClaimType ==1, Season == 2)
-
-fit <- fitdistr(N12$n, "Negative Binomial")
-df <- data.frame(x = c(N12$n, rpois(10000, mean(N12$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N12$n),10000,10000))))
-
-df <- df[order(df$x), ]
-df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-
-emp <- (df %>% filter(ggg == 1))$x
-pois <- (df %>% filter(ggg == 2))$x
-negbin <- (df %>% filter(ggg == 3))$x
-
-qqplot(emp, negbin, 
-       xlim = range(emp), ylim = range(negbin), 
-       xlab = "Empirical distribution", ylab = "Other distributions", col = "blue", pch = 3, main = expression("QQ-plot for" ~ N[12]))
-par(new=TRUE)
-qqplot(emp, pois, 
-       xlim = range(emp), ylim = range(negbin), 
-       xlab = "Empirical distribution", 
-       ylab = "Other distributions",
-       col = "green")
-abline(a = 0, b = 1)
-legend("topleft", legend = c("NegBin", "Pois"), pch = 19, col = c("blue", "green"))
-
-
-#QQPLOT FOR N21
-
-N21 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-  summarise(n = n()) %>% 
-  filter(ClaimType ==2, Season == 1)
-
-fit <- fitdistr(N21$n, "Negative Binomial")
-df <- data.frame(x = c(N21$n, rpois(10000, mean(N21$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N21$n),10000,10000))))
-
-df <- df[order(df$x), ]
-df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-
-emp <- (df %>% filter(ggg == 1))$x
-pois <- (df %>% filter(ggg == 2))$x
-negbin <- (df %>% filter(ggg == 3))$x
-
-qqplot(emp, negbin, 
-       xlim = range(emp), ylim = range(negbin), 
-       xlab = "Empirical distribution", ylab = "Other distributions", col = "blue", pch = 3, main = expression("QQ-plot for" ~ N[21]))
-par(new=TRUE)
-qqplot(emp, pois, 
-       xlim = range(emp), ylim = range(negbin), 
-       xlab = "Empirical distribution", 
-       ylab = "Other distributions",
-       col = "green")
-abline(a = 0, b = 1)
-legend("topleft", legend = c("NegBin", "Pois"), pch = 19, col = c("blue", "green"))
-
-
-#QQPLOT FOR N22
-
-N22 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-  summarise(n = n()) %>% 
-  filter(ClaimType == 2, Season == 2)
-
-fit <- fitdistr(N22$n, "Negative Binomial")
-df <- data.frame(x = c(N22$n, rpois(10000, mean(N22$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N22$n),10000,10000))))
-
-df <- df[order(df$x), ]
-df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-
-emp <- (df %>% filter(ggg == 1))$x
-pois <- (df %>% filter(ggg == 2))$x
-negbin <- (df %>% filter(ggg == 3))$x
-
-qqplot(emp, negbin, 
-       xlim = range(emp), ylim = range(negbin), 
-       xlab = "Empirical distribution", ylab = "Other distributions", col = "blue", pch = 3, main = expression("QQ-plot for" ~ N[22]))
-par(new=TRUE)
-qqplot(emp, pois, 
-       xlim = range(emp), ylim = range(negbin), 
-       xlab = "Empirical distribution", 
-       ylab = "Other distributions",
-       col = "green")
-abline(a = 0, b = 1)
-legend("topleft", legend = c("NegBin", "Pois"), pch = 19, col = c("blue", "green"))
+# 
+# #QQPLOT FOR N11
+# 
+# fit <- fitdistr(N11$n, "Negative Binomial")
+# set.seed(123)
+# df <- data.frame(x = c(N11$n, rpois(10000, mean(N11$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N11$n),10000,10000))))
+# 
+# df <- df[order(df$x), ]
+# df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
+# 
+# emp <- (df %>% filter(ggg == 1))$x
+# pois <- (df %>% filter(ggg == 2))$x
+# negbin <- (df %>% filter(ggg == 3))$x
+# 
+# qqplot(emp, negbin, 
+#        xlim = range(emp), ylim = range(negbin), 
+#        xlab = "Empirical distribution", ylab = "Other distributions", col = "blue", pch = 3, main = expression("QQ-plot for" ~ N[11]))
+# par(new=TRUE)
+# qqplot(emp, pois, 
+#        xlim = range(emp), ylim = range(negbin), 
+#        xlab = "Empirical distribution", 
+#        ylab = "Other distributions",
+#        col = "green")
+# abline(a = 0, b = 1)
+# legend("topleft", legend = c("NegBin", "Pois"), pch = 19, col = c("blue", "green"))
+# 
+# #QQPLOT FOR N12
+# 
+# N12 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
+#   summarise(n = n()) %>% 
+#   filter(ClaimType ==1, Season == 2)
+# 
+# fit <- fitdistr(N12$n, "Negative Binomial")
+# df <- data.frame(x = c(N12$n, rpois(10000, mean(N12$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N12$n),10000,10000))))
+# 
+# df <- df[order(df$x), ]
+# df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
+# 
+# emp <- (df %>% filter(ggg == 1))$x
+# pois <- (df %>% filter(ggg == 2))$x
+# negbin <- (df %>% filter(ggg == 3))$x
+# 
+# qqplot(emp, negbin, 
+#        xlim = range(emp), ylim = range(negbin), 
+#        xlab = "Empirical distribution", ylab = "Other distributions", col = "blue", pch = 3, main = expression("QQ-plot for" ~ N[12]))
+# par(new=TRUE)
+# qqplot(emp, pois, 
+#        xlim = range(emp), ylim = range(negbin), 
+#        xlab = "Empirical distribution", 
+#        ylab = "Other distributions",
+#        col = "green")
+# abline(a = 0, b = 1)
+# legend("topleft", legend = c("NegBin", "Pois"), pch = 19, col = c("blue", "green"))
+# 
+# 
+# #QQPLOT FOR N21
+# 
+# N21 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
+#   summarise(n = n()) %>% 
+#   filter(ClaimType ==2, Season == 1)
+# 
+# fit <- fitdistr(N21$n, "Negative Binomial")
+# df <- data.frame(x = c(N21$n, rpois(10000, mean(N21$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N21$n),10000,10000))))
+# 
+# df <- df[order(df$x), ]
+# df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
+# 
+# emp <- (df %>% filter(ggg == 1))$x
+# pois <- (df %>% filter(ggg == 2))$x
+# negbin <- (df %>% filter(ggg == 3))$x
+# 
+# qqplot(emp, negbin, 
+#        xlim = range(emp), ylim = range(negbin), 
+#        xlab = "Empirical distribution", ylab = "Other distributions", col = "blue", pch = 3, main = expression("QQ-plot for" ~ N[21]))
+# par(new=TRUE)
+# qqplot(emp, pois, 
+#        xlim = range(emp), ylim = range(negbin), 
+#        xlab = "Empirical distribution", 
+#        ylab = "Other distributions",
+#        col = "green")
+# abline(a = 0, b = 1)
+# legend("topleft", legend = c("NegBin", "Pois"), pch = 19, col = c("blue", "green"))
+# 
+# 
+# #QQPLOT FOR N22
+# 
+# N22 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
+#   summarise(n = n()) %>% 
+#   filter(ClaimType == 2, Season == 2)
+# 
+# fit <- fitdistr(N22$n, "Negative Binomial")
+# df <- data.frame(x = c(N22$n, rpois(10000, mean(N22$n)), rnegbin(10000, mu = fit$estimate[2], theta = fit$estimate[1])), ggg = factor(rep(1:3, c(length(N22$n),10000,10000))))
+# 
+# df <- df[order(df$x), ]
+# df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
+# 
+# emp <- (df %>% filter(ggg == 1))$x
+# pois <- (df %>% filter(ggg == 2))$x
+# negbin <- (df %>% filter(ggg == 3))$x
+# 
+# qqplot(emp, negbin, 
+#        xlim = range(emp), ylim = range(negbin), 
+#        xlab = "Empirical distribution", ylab = "Other distributions", col = "blue", pch = 3, main = expression("QQ-plot for" ~ N[22]))
+# par(new=TRUE)
+# qqplot(emp, pois, 
+#        xlim = range(emp), ylim = range(negbin), 
+#        xlab = "Empirical distribution", 
+#        ylab = "Other distributions",
+#        col = "green")
+# abline(a = 0, b = 1)
+# legend("topleft", legend = c("NegBin", "Pois"), pch = 19, col = c("blue", "green"))
 ```
 
