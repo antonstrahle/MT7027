@@ -695,8 +695,6 @@ bsSampler <- function(){
     nonAgg <- rbind(nonAgg, rbind(cbind(rep(i, length(TC1)), rep(1, length(TC1)),TC1),
                                   cbind(rep(i, length(TC2)), rep(2, length(TC2)), TC2)))
     
-    
-    
   }
   
   sampledYear <- nonAgg %>% 
@@ -730,7 +728,6 @@ samples1 %>%
 
 ######COPULA SAMPLER
 
-
 copulaSampler <- function(rho){
   
   nb11 <- fitdist(N11$n, "nbinom")
@@ -743,7 +740,7 @@ copulaSampler <- function(rho){
   for(i in 1:365){
     
     x <- rnorm(1)
-    y <- rho[floor(i/((366/12))) + 1]*x + sqrt(1-rho[floor(i/(366/12)) + 1]^2)*x
+    y <- rho[ceiling(i/((365/12)))]*x + sqrt(1-rho[ceiling(i/(365/12))]^2)*x
     
     if(i %in% c(152:272)){
       
