@@ -727,6 +727,48 @@ samples1 %>%
     facet_wrap(~Type, scales = "free", labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
     ggtitle("Figure 1: Distribution of sampled annual costs of the two branches")
 
+
+######COPULA SAMPLER
+
+
+copulaSampler <- function(rho){
+  
+  nb11 <- fitdist(N11$n, "nbinom")
+  nb12 <- fitdist(N12$n, "nbinom")
+  nb21 <- fitdist(N21$n, "nbinom")
+  nb22 <- fitdist(N22$n, "nbinom")
+  
+  df <- data.frame(matrix(ncol = 2, nrow = 0))
+  
+  for(i in 1:365){
+    
+    x <- rnorm(1)
+    y <- rho[floor(i/((366/12))) + 1]*x + sqrt(1-rho[floor(i/(366/12)) + 1]^2)*x
+    
+    if(i %in% c(152:272)){
+      
+      xAlt <- unname(quantile(nb12, probs = pnorm(x))$quantiles)
+      
+      yAlt <- unname(quantile(nb22, probs = pnorm(y))$quantiles)
+      
+    } else {
+      
+      xAlt <- unname(quantile(nb11, probs = pnorm(x))$quantiles)
+      
+      yAlt <- unname(quantile(nb21, probs = pnorm(y))$quantiles)
+      
+    }
+    
+    df <- rbind(df, c(xAlt, yAlt))
+    
+  }   
+  
+  df
+}
+
+copulaSampler(rep(0,12))
+
+
 ```
 
 From Figure 1 above we note that the distributions look fairly normal with branch $2$ having both a higher expectation and variance compared to branch $1$. 
