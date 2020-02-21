@@ -354,7 +354,7 @@ estimateSigma <- function(ct){
       
     }
     
-    sigmaHat = c(sigmaHat, unlist(sum)/(r-k-1)) #Henning sa att I = r (då I = n ger delning med 0)
+    sigmaHat = c(sigmaHat, unlist(sum)/(n-k-0)) #-0 då i_0 = 0
     
   }
   
@@ -368,45 +368,35 @@ sigmaHat2 <- estimateSigma(ct2Alt) #estimates sigma^2 for type 2
 
 riskCalculation <- function(ct, ctAlt){
   
-  n <- nrow(ct)
+  n <- ncol(ct)
   
-  C <- fillct(ct)
+  C <- matrix(unlist(fillct(ct)), ncol = n)
   
   fHat <- estimateF(ctAlt)
   
   sigmaHat <- estimateSigma(ctAlt) #estimates sigma^2
   
-  risks <- c()
+  sum <- 0
   
   for(i in 2:n){
     
-    sum <- 0
-    
     for(k in (n+1-i):(n-1)){
       
-      sum = sum + sigmaHat[k]/fHat[k]^2*(1/C[i,k] + 1/sum(C[1:(n-k),k])) 
+      sum = sum + C[i,n]^2*(sigmaHat[k]/fHat[k]^2*(1/C[i,k] + 1/sum(C[1:(n-k),k]))) 
       
     }
-   
-    risks <- c(risks, unlist(sum*C[i,n]^2))
      
+    sum = sum + C[i,n]*sum(C[(i+1):n,n])*2*sum((sigmaHat/fHat^2)[(n+1-i):(n-1)])/sum(C[1:(n-k), k])
+    
   }
  
-  risks
+  sum
   
 }
 
-risks1 <- cbind(2:10,unname(riskCalculation(ct1, ct1Alt)), fullct1[2:10,10]) %>% 
-  data.frame() %>% 
-  setNames(c("Year", "Reserve Risk", "Reserve")) 
+#SUBSCRIPT OUT OF BOUNDS
 
-kable(risks1, caption = "Reserve risk for coming years for branch 1")
-
-risks2 <- cbind(2:10,unname(riskCalculation(ct2, ct2Alt)), fullct2[2:10,10]) %>% 
-  data.frame() %>% 
-  setNames(c("Year", "Reserve Risk", "Reserve")) 
-
-kable(risks2, caption = "Reserve risk for coming years for branch 1")
+riskCalculation(ct1, ct1Alt)
 
 ```
 
