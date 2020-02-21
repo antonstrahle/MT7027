@@ -538,7 +538,6 @@ lines(x=x, y=dlogspline(x, fit), col = "black")
 
 qqplot(cost_type2, rlogspline(100000, logspline(cost_type2)), xlab = "Empirical quantiles",ylab = "Logspline quantile",main = "QQ-plot of Claim Cost for \nbranch 2 with fitted logspline")
 abline(0, 1)
-dev.off()
 
 
 # 
@@ -613,6 +612,46 @@ ggplot(aggClaims, aes(x= Counts.x, y = Counts.y)) +
 ```
 
 We note from the figures above that there seems to be some kind of positive correlation between the two insurance products, meaning that we cannot model the claims for each product separatley, but that we instead have to model them jointly. We can however still model the claim costs of the two branches independently as we saw in the previous exercise.
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+data_type1 <- data %>% filter(ClaimType == 1)
+data_type2 <- data %>% filter(ClaimType == 2)
+corrTypesTotalCost <- map_dbl(list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+  function(x) cor(data_type1 %>%
+    filter(Month == x) %>%
+    group_by(Month, Year) %>%
+    summarize(TotalClaimCost = sum(ClaimCost)) %>%
+    pull(TotalClaimCost),
+    data_type2 %>%
+    filter(Month == x) %>%
+    group_by(Month, Year) %>%
+    summarize(TotalClaimCost = sum(ClaimCost)) %>%
+    pull(TotalClaimCost)))
+# corrTypesTotalCost
+
+corrTypesTotalClaims <-map_dbl(list(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12),
+  function(x) cor(data_type1 %>%
+    filter(Month == x) %>%
+    group_by(Month, Year) %>%
+    summarize(TotalClaims = n()) %>%
+    pull(TotalClaims),
+    data_type2 %>%
+    filter(Month == x) %>%
+    group_by(Month, Year) %>%
+    summarize(TotalClaims = n()) %>%
+    pull(TotalClaims)))
+# corrTypesTotalClaims
+
+data.frame("Month" = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) %>% 
+  mutate("Cost Correlation" = corrTypesTotalCost) %>% 
+  mutate("Claims Correlation" = corrTypesTotalClaims) %>% 
+  kable(caption = "Correlation between the branches for total cost and total number of claims per month under the 10 year period. ")
+
+```
+
+From the table above we can see that there seems to exist som dependency between the branches considering the total number of claims for a certain month under this 10 year period. We can see the same for the total claims cost both not as strong as for the number of claims. As a consequence we should not use the marginal distributions to simulate future claim costs and instead use a joint distribution. 
+
 
 #Exercise 4
 
