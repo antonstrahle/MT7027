@@ -16,10 +16,10 @@ In this exercsie we want to find trends in the data for the two insurance branch
 
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(knitr))
-library(fitdistrplus)
-library(MASS)
-library(actuar)
-library(gridExtra)
+suppressPackageStartupMessages(library(fitdistrplus))
+suppressPackageStartupMessages(library(MASS))
+suppressPackageStartupMessages(library(actuar))
+suppressPackageStartupMessages(library(gridExtra))
 n <- 1000 #STORLEK FÖR SIMULERINGAR I 4,5,6,7
 
 #standard theme
@@ -655,9 +655,29 @@ From the table above we can see that there seems to exist som dependency between
 
 #Exercise 4
 
-As we mentioned previously the number of claims for the two branches are not independent, meaning that the have to be sampled from a bivariate distribution rather than two univariate distributions. This can be done by either deriving the bivariate distribution analytically and then sampling from it or, as we will do, by using a bootstrap sampler. We begin by sampling the number of claims for each month of the following year from the data of the correct season. We previosuly mentionded that the claim costs are time independent for both branches as well as that they are independent between the two insurance branches. Due to this we can as previosuly mentioned model claims and the individual claim costs independently.  
+As we mentioned previously the number of claims for the two branches are not independent, meaning that the have to be sampled from a bivariate distribution rather than two univariate distributions. This can be done by either deriving the bivariate distribution analytically and then sampling from it or by generating a bivariate sample using bootstrap or the Gauss-copula method. 
 
-```{r echo = FALSE, message = FALSE, cache = TRUE}
+For the bootstrap method we begin by sampling the number of claims for each month of the following year from the data of the correct season. We previosuly mentionded that the claim costs are time independent for both branches as well as that they are independent between the two insurance branches. Due to this we can, as previosuly mentioned, model claims and the individual claim costs independently. An advantage of using bootstrap is that we do not need to know the distributions for the number of claims or the claim costs, which we do not know for the claim cost since we could not find a good fit for any of the distributions we tried. 
+
+We can also use the Gauss-copula-method to simulate a 2-dimensional number of claims for each day, one for each branch. The Gauss-copula-method keeps the dependency structure, which we observed, between the two branches with regards to the number of claims. We simulate separately for each season since we observed that the day distributions are different in these periods. 
+More specifically we follow these steps to simulate number of claims for one month:
+
+1. Simulate i.i.d pairs $(Z_{i,1}, Z_{i,2})$, $i=1,...,30$ and $Z_{i,k} \sim N(0,1)$, $k=1,2$.
+
+2. Let $(X_{i,1}, X_{i,2}) = (Z_{i,1}, \rho Z_{i,1} + \sqrt{1-\rho^2}Z_{i,2}$
+
+3. Let $(Y_{i,1}, Y_{i,2}) = (G^{-1}(\Phi(X_{i,1})), H^{-1}(\Phi(X_{i,2})))$, where $G$ is the marginal cumulative distribution function for branch 1 and $H$ for branch 2. 
+
+Note that these steps simulate the number of claims for one month and thus the $\rho$ differs from month to month and $G$ and $H$ differs between seasons, as discussed in exercise 1. 
+For each month we use the $\rho$ we have in Table 1. 
+
+We could also have used the Gauss-copula-method to simulate claim costs, however since we do not have as much correlation as for the number of claims and that it is assumed that we have an equal number of claims for each branch which is not necessarily true in our case, we chose not to use copulas for the claim costs. We assume that the dependency structure between the branches is captured in the number of claims. Threfore we continue by, for each claim, simulate a cost from the corresponding logspline approximation to assign to that claim and assume independence between costs. 
+
+However, since our results in the following exercises did not differ much, using bootstrap compared to the Gauss-copula method, we chose to only include results from the bootstrap method.
+
+We bootstrap $1000$ years using the data for our $10$ year period and we can see the distributions of the total annual costs in the figure below. We can see that branch $2$ have both a higher expectation and variance compared to branch $1$.
+
+```{r echo = FALSE, message = FALSE, cache = TRUE, warning = FALSE}
 
 #Independent bootstrap samler
 
@@ -722,8 +742,8 @@ samples1 <- samples %>%
 samples1 %>% 
   ggplot(aes(x = Total)) +
     geom_histogram(bins = 20) +
-    facet_wrap(~Type, scales = "free", labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
-    ggtitle("Figure 1: Distribution of sampled annual costs of the two branches")
+    facet_wrap(~Type, scales = "free", labeller = labeller(Type = c("1" = "Branch 1", "2" = "Branch 2"))) +
+    ggtitle("Distribution of sampled annual costs of the two branches")
 
 
 ######COPULA SAMPLER
@@ -763,18 +783,41 @@ copulaSampler <- function(rho){
   df
 }
 
-copulaSampler(rep(0,12))
 
+############Add cost to the copula using logspline
+simYearCopula <- function(corrTypesTotalClaims){
+  cupolaClaims <- copulaSampler(corrTypesTotalClaims)
+  
+  noClaimsBranch1 <- cupolaClaims %>% setNames(c("1", "2")) %>% gather(key = "Branch", value = "Claims") %>% filter(Branch == "1")
+  
+  dayRepBranch1 <- rep(row.names(noClaimsBranch1), noClaimsBranch1$Claims)
+  
+  noClaimsBranch2 <- cupolaClaims %>% setNames(c("1", "2")) %>% gather(key = "Branch", value = "Claims") %>% filter(Branch == "2")
+  
+  dayRepBranch2 <- rep(row.names(noClaimsBranch2), noClaimsBranch2$Claims)
+  
+  
+  fit <- logspline(cost_type1)
+  logslineCostBranch1 <- rlogspline(length(dayRepBranch1), fit)
+  
+  fit <- logspline(cost_type2)
+  logslineCostBranch2 <- rlogspline(length(dayRepBranch2), fit)
+  
+  simulatedCopula <- data.frame(Day = unlist(c(dayRepBranch1, dayRepBranch2)), 
+            Branch = c(rep(1, length(dayRepBranch1)), rep(2, length(dayRepBranch2))),
+            ClaimCost = unlist(c(logslineCostBranch1, logslineCostBranch2)))
+  return(simulatedCopula)
+}
 
+# simulatedCopula     
 ```
 
-From Figure 1 above we note that the distributions look fairly normal with branch $2$ having both a higher expectation and variance compared to branch $1$. 
 
 #Exercise 5
 
 We now want to implement two separate XL-covers. The covers caps losses for the $10\%$ worst claims for each respective insurance branch. For our two branches these cut-off $M_1$ and $M_2$ are the following
 
-```{r echo = FALSE, warning = FALSE}
+```{r echo = FALSE, warning = FALSE, cache=TRUE, message = FALSE}
 
 mVals <- samples %>% 
   group_by(Type) %>% 
@@ -789,13 +832,53 @@ expectedCost <- samples %>%
   summarize(TotalExpenditures = sum(Expenditures)) %>% 
   mutate(Price = 1.2*TotalExpenditures)
 
+#Using copula
+#not included since very similar to bootstrap
+simM <- function(n, corrTypesTotalClaims){
+  df <- simYearCopula(corrTypesTotalClaims) %>% 
+      group_by(Branch) %>% 
+      summarize(M = quantile(p = 0.9, ClaimCost))
+  
+  for(i in 1:(n-1)){
+    oneYear <- simYearCopula(corrTypesTotalClaims)
+    df <- rbind(df, oneYear %>% 
+      group_by(Branch) %>% 
+      summarize(M = quantile(p = 0.9, ClaimCost)))
+  }
+  return(df %>% group_by(Branch) %>% summarize(M = mean(M)))
+}
+
+# mValsCop <- simM(100, corrTypesTotalClaims)
+
+simPrice <- function(n, mValsCop){
+  df <- simYearCopula(corrTypesTotalClaims) %>% 
+    inner_join(mValsCop, by = "Branch") %>% 
+    mutate(Expenditures = pmax(ClaimCost-M,0)) %>% 
+    group_by(Branch) %>% 
+    summarize(TotalExpenditures = sum(Expenditures)) %>% 
+    mutate(Price = 1.2*TotalExpenditures)
+  for(i in 1:n){
+    df <- rbind(df, simYearCopula(corrTypesTotalClaims) %>% 
+    inner_join(mValsCop, by = "Branch") %>% 
+    mutate(Expenditures = pmax(ClaimCost-M,0)) %>% 
+    group_by(Branch) %>% 
+    summarize(TotalExpenditures = sum(Expenditures)) %>% 
+    mutate(Price = 1.2*TotalExpenditures))
+  }
+
+  return(df %>% group_by(Branch) %>% 
+           summarize(TotalExpenditures = mean(TotalExpenditures),
+                     Price = mean(Price)))
+}
+
+# simPrice(100, mValsCop)
 ```
 
 `r kable(mVals, caption = "Cut-offs")`
 
 We note that these cutoffs are vastly different for the two branches which of course is to be expected since they likely insure against different things. Graphically the distribution of the individual claim costs looks as follows when, and when not, taking the XL-covers into account.
 
-```{r echo = FALSE, warning = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE}
 
 noXL <- samples %>% 
   ggplot(aes(x = Cost)) +
@@ -823,7 +906,8 @@ From the figures above we note that both XL-covers seem to cover some very devia
 
 prices <- expectedCost %>% 
   group_by(Type) %>% 
-  summarize(Price = mean(Price)) 
+  summarize(Price = mean(Price)) %>% 
+  setNames(c("Branch", "Price"))
 
 kable(prices, caption = "Prices for the two XL-covers")
 
@@ -831,7 +915,7 @@ kable(prices, caption = "Prices for the two XL-covers")
 
 As previosuly mentioned both covers turn out to be fairly pricy, specifically the cover for branch 2. We now want to examine how the purchase of these XL-covers would impact our total losses for the forthcoming year. We saw a simulated distribution of the losses for the two branches without the XL-covers in Figure 1. If we implement the covers we get the following simulated distributions.
 
-```{r echo = FALSE, cache = TRUE}
+```{r echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE}
 
 samples2 <- samples %>% 
   inner_join(mVals, by = "Type") %>% 
@@ -844,8 +928,8 @@ samples2$Total <- samples2$Total + rep(prices$Price, n)
 samples2 %>% 
   ggplot(aes(x = Total)) +
     geom_histogram(bins = 20) +
-    facet_wrap(~Type, scales = "free", labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
-    ggtitle("Figure 2: Distribution of sampled annual costs of the two branches with XL-covers")
+    facet_wrap(~Type, scales = "free", labeller = labeller(Type = c("1" = "Branch 1", "2" = "Branch 2"))) +
+    ggtitle("Distribution of sampled annual costs of the two branches with XL-covers")
 
 ```
 
@@ -853,7 +937,7 @@ When comparing Figure 1 to Figure 2 we note that that the approximate expected c
 
 We can also observe the how the purchase of both covers affect the distribution of the overall annual cost.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE}
 #TotalCosts for no XL-cover
 
 plotWithoutXL <- (samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>% 
@@ -879,7 +963,7 @@ Once again we see that the distribution is lighter-tailed whilst having a higher
 
 We now want to implement an SL-cover instead of an XL-cover for both insurance branches. Like the XL-covers the SL-covers insure against the $10\%$ worst annual costs at a price of $120\%$ of the expected cost. We can once again plot the simulated annual costs with and without the SL-covers.
 
-```{r echo = FALSE, cache = TRUE}
+```{r echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE}
 
 mVals2 <- samples1 %>% 
   group_by(Type) %>% 
@@ -935,7 +1019,7 @@ The prices of the two SL-covers are as follows
 
 Here we note that the prices are actually extremely low, for insurance branch 1 the annual cost of the SL-cover but a drop in the ocean compared to the overall annual claim costs. The price for the SL-cover for branch 2 is a bit more pricy which is due to the fact of the higher variance of the annual claim costs distribution as was previously noted.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE}
 
 # samples1 %>% 
 #   ggplot(aes(x = Total, y = ..density..)) +
@@ -947,7 +1031,7 @@ samples3 %>%
   ggplot(aes(x = Total, y = ..density..)) +
     geom_histogram() +
     facet_wrap(~Type, scales = "free", labeller = labeller(ClaimType = c("1" = "Product 1", "2" = "Product 2"))) +
-    ggtitle("Figure 3: Sampled annual costs with SL-covers")
+    ggtitle("Sampled annual costs with SL-covers")
 
 ```
 
@@ -955,7 +1039,7 @@ When comparing Figure 1 and Figure 3 we note that the expected cost is slightly 
 
 We can also examine how the purchase of both covers impact the overall annual claim costs.
 
-```{r echo = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE}
 #Total costs
 
 plotWithoutSL <- (samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]) %>% 
@@ -981,7 +1065,7 @@ By purchasing both covers we increase the expectation slightly whilst also skewi
 
 Lastly we want to implement an SL-cover which insured against $10\%$ of the worst total annual costs, i.e. summed over both branches. This cover will be priced and insure like the individual SL-covers in Exercise 6.
 
-```{r echo = FALSE, cache = TRUE}
+```{r echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE}
 
 mVals3 <- quantile((samples1$Total[samples1$Type == 1] + samples1$Total[samples1$Type == 2]), 0.9)
 
@@ -1018,7 +1102,7 @@ Like for the previous SL-covers we note that the distribution of the total annua
 
 The cost of this cover, based on simulated data, is `r prices3` which is once again lower than than the previously examined covers, this is because we have aggregated on yet another level which has further reduced the risk.
 
-```{r echo = FALSE}
+```{r echo = FALSE, message = FALSE}
 
 samples4$Total <- samples4$Total + prices3
 
@@ -1032,9 +1116,7 @@ samples4 %>%
 We see from the two histograms that the total SL-cover implies a higher expected cost but also limits the total annual cost to $M =$  `r mVals3`. As such a more risk averse insurance provider might opt for the SL-cover to completly exclude the possiblity of large deviations in the annual costs whilst a more risk-taking insurance provide might avoid the SL-cover to reduce the expected annual cost.
 
 
-#Appendix
-
-```{r echo = FALSE, warning= FALSE}
+```{r echo = FALSE, warning= FALSE, message = FALSE}
 # 
 # #QQPLOT FOR N11
 # 
