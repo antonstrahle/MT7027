@@ -7,11 +7,13 @@ output: pdf_document
 
 #Exercise 1
 
-```{r}
+```{r, echo = FALSE, warning = FALSE}
 
-library(knitr)
-library(readr)
-library(tidyverse)
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(readr))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(gridExtra))
 
 options(knitr.kable.NA = '')
 
@@ -99,19 +101,38 @@ fullct1 <- fillct(ct1)
 
 fullct2 <- fillct(ct2)
 
-kable(ct1, caption = "Paid claims triangle of type 1", row.names = c(1:10))
+```
 
-kable(ct2, caption = "Paid claims triangle of type 2", row.names = c(1:10))
+The purpose of this project is to examine how one can predict future expenses in order to be able to reserve against them. Specifically we wish to examine both the expected future payments as well as the variance within these payments. The data which we have been given is collected over several years and divided between two vastly different insurance products, henceforth refered to as product, or branch, 1 or 2. The final 10 years of the data can be aggregated in order to create the following two paid claims triangles. Lastly, since the claims triangle is limited to 10 development years the data has been truncated to accomodate this limit.
 
-kable(fullct1, caption = "Full claims triangle of type 1 predicted with CL", row.names = c(1:10))
+`r kable(ct1, caption = "Paid claims triangle for product 1", row.names = c(1:10)) %>% kable_styling(latex_options =c("hold_position", "scale_down"))`
 
-kable(fullct2, caption = "Full claims triangle of type 2 predicted with CL", row.names = c(1:10))
+`r kable(ct2, caption = "Paid claims triangle of product 2", row.names = c(1:10)) %>% kable_styling(latex_options =c("hold_position", "scale_down"))`
+
+Using Mack's non-parametric CL approach we can predict the total cost of future payments per year as follows.
+
+`r kable(fullct1, caption = "Full claims triangle of type 1 predicted with CL", row.names = c(1:10)) %>% kable_styling(latex_options =c("hold_position", "scale_down"))`
+
+`r kable(fullct2, caption = "Full claims triangle of type 2 predicted with CL", row.names = c(1:10)) %>% kable_styling(latex_options =c("hold_position", "scale_down"))`
+
+\newpage
+
+Lastly we wish to predict the future payments for each of the claims years, i.e. those on the vertical axes, and then combine them into a the total chain ladder reserve.
+
+```{r echo = FALSE, warning = FALSE}
+
+reserve1 <- as.matrix(fullct1)[, 10] - diag(as.matrix(fullct1)[10:1,])[10:1]
+
+reserve2 <- as.matrix(fullct2)[, 10] - diag(as.matrix(fullct2)[10:1,])[10:1]
+
+kable(rbind(c("Product 1" , sum(reserve1)), c("Product 2", sum(reserve2))), digits = 2, caption = "Chain Ladder Reserve") %>%  kable_styling(latex_options =c("hold_position"))
 
 ```
 
+
 #Exercise 2
 
-We now want to check whether or not Mack's undrlying assumptions are met in our case. The assumptions are as follows.
+We now want to check whether or not Mack's underlying assumptions are met in our case. The assumptions are as follows.
 
 \begin{enumerate}
   \item $E[C_{i,k+1}|C_{i,1},...,C{i,k}] = f_kC_{i,k}$
@@ -119,11 +140,13 @@ We now want to check whether or not Mack's undrlying assumptions are met in our 
   \item $Var(C_{i,k+1}|C_{i,1},...,C{i,k}) = \sigma_k^2C_{i,k}$
 \end{enumerate}
 
-We begin by examing whether or not the we have an approximate linear relationship between $C_{i,k}$ and $C_{i,k+1}$ for $i = 1,...,10$
+We begin by examing whether or not the we have an approximate linear relationship between $C_{i,k}$ and $C_{i,k+1}$ for $i = 1,...,10$.
 
-```{r}
+```{r echo = FALSE, warning = FALSE}
 
 #Gör om gör fint!
+
+par(mfrow=c(4,2), cex=0.35) 
 
 plot(ct1$`1`, ct1$`2`)
 lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[1]}), col = "blue")
@@ -149,7 +172,9 @@ lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = funct
 plot(ct1$`8`, ct1$`9`)
 lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[8]}), col = "blue")
 
-#Skoja dem blev faktiskt inte så fula
+#Skoja dem blev faktiskt inte så fula men fixa axlarna
+
+par(mfrow=c(4,2), cex=0.35) 
 
 plot(ct2$`1`, ct2$`2`)
 lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat2[1]}), col = "blue")
@@ -177,9 +202,9 @@ lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = funct
 
 ```
 
-We note that the linear approximation seems to hold. We now want to plot the weighted residuals.
+We note that the linear approximation seems to hold. Secondly we wish to examine the weighted residuals $\frac{C_{i,k+1}-C_{i,k}f_k}{C_{i,k}}$ in order to see if we have randomness, i.e. no systematic behaviours within the years.  
 
-```{r}
+```{r echo = FALSE, warning = FALSE}
 
 residualHelper <- function(ct){
   
@@ -205,30 +230,37 @@ residualHelper <- function(ct){
   
 }
 
-resFrame <- residualHelper(ct1) %>% 
+
+resFrame1 <- residualHelper(ct1) %>% 
   setNames(c("Year", "Res", "Ci"))
 
-ggplot(resFrame, aes(x = Ci, y = Res)) +
+res1 <- ggplot(resFrame1, aes(x = Ci, y = Res)) +
   geom_point() +
   facet_wrap(~Year, scales = "free_y") 
 
 #Notera att vi bara beaktar år med fler än 6 punkter enl Mack!
 #OBS enbart använt vanliga f. Kan vara bra att kolla resterande
 
-resFrame <- residualHelper(ct2) %>% 
+resFrame2 <- residualHelper(ct2) %>% 
   setNames(c("Year", "Res", "Ci"))
 
-ggplot(resFrame, aes(x = Ci, y = Res)) +
+res2 <- ggplot(resFrame2, aes(x = Ci, y = Res)) +
   geom_point() +
   facet_wrap(~Year, scales = "free_y")
 
+#FIXA SNYGGT!!
+
+#grid.arrange(resFrame1, resFrame2)
+
 ```
 
-All years with more than 6 points, as suggested by Mack, seem to showcase random behaviour and no signs of any systematic deviations.
+All years with more than 6 points, the threshold suggested by Mack, seem to showcase random behaviour and no clear signs of any systematic deviations. 
 
-Lastly we want to examine whether or not we have any calender year effects. An example of a scenario where the assumption of independent years might be violated is if there is an overhaul of the way claims are handled.
+Lastly we want to examine whether or not we have any calender year effects. An example of a scenario where the assumption of independent years might be violated is if there is an overhaul of the way claims are handled which comes into effect during a specific year.
 
-```{r}
+```{r echo = FALSE, warning = FALSE}
+
+#MAX GÖR FÖRDELNINGSHISTROGRAM FÖR ÅRENS RANKING FÖR BÅDA BRANCHES!!
 
 #Branch 1
 
@@ -251,6 +283,8 @@ for(k in 1:(n-1)){
   }
   
   fList1[[k]] <- sort(fk)
+  
+  
   
 }
 
@@ -285,28 +319,39 @@ fList2
 
 #Detta blev ju väldigt fult men det får fram budskapet
 #Gör en tabell där man räknar kardinaleteten av
-#sFk och lFk för alla k
+#sFk och lFk för alla k??
 
 
 ```
 
-We might have some seasonal dependence idk??
+From the previous figures it looks as if we might have some annual dependencies, they are however not significant enough to make us deviate from the use of Mack's non-parametric CL.
 
 #Exercise 3
+In this exercise we wish to examine the variance parameter for the last development year (i.e. development year 10). We can do this by implementing the formulas presented in Mack's paper. First we have that
 
-From the paper by Mack we have that 
+$$
+Var(R) = \sum_{i=2}^{I}Var(C_{i,I}) + C_{i,I}\left(\sum_{j=i+1}^I C_{j,I}\right)\sum_{k=I+1-i}^{I-1}\frac{2\sigma_k^2}{f_k^2\sum_{n=1}^{I-k}C_{n,k}}
+$$
+
+where
 
 $$
 Var(C_{i,I}) = C_{i,I}^2 \sum_{k=I+1-i}^{I-1} \frac{\sigma_k^2}{f_k^2}\left(\frac{1}{C_{i,k}} + \frac{1}{\sum_{j=1}^{I-k}C_{j,k}}\right)
 $$
-where we estimate $\sigma_k^2$ by
+
+and where we estimate $\sigma_k^2$ by
 
 $$
 \hat \sigma_k^2 = \frac{1}{I-k-1}\sum_{j=1}^{I-k}C_{j,k}\left(\frac{C_{j,k+1}}{C_{j,k}-\hat f_k}\right)^2
 $$
-which is an unbiased estimator. 
+and
 
-```{r}
+$$
+\hat f_k = \frac{\sum_{j=1}^{I-k}C_{i,k+1}}{\sum_{j=1}^{I-k}C_{i,k}}
+$$
+as previously.
+
+```{r echo = FALSE, warning = FALSE}
 
 #WE now need the last 11 years
 
@@ -396,13 +441,15 @@ riskCalculation <- function(ct, ctAlt){
 
 #SUBSCRIPT OUT OF BOUNDS
 
-riskCalculation(ct1, ct1Alt)
+#riskCalculation(ct1, ct1Alt)
 
 ```
 
+By doing this we get the following ERROR :((
 
+#Exercise 5
 
-```{r}
+```{r echo = FALSE, warning = FALSE}
 
 prevct1 <- data %>% 
   rbind(c(1,1,10,1,1,0)) %>% 
@@ -507,7 +554,7 @@ kable(cbind(c(0:8),uc2), caption = "Ultimate claim amounts over observed years f
 
 ```
 
-#Exercise 4
+#Exercise 5
 
 ```{r echo = FALSE, warning = FALSE}
 
