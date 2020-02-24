@@ -12,3 +12,12 @@ Project 1:
 * More text and expand introductions
 
 Project 2:
+* Label/number the figures
+* Add titles to all figures
+* Go through text and add references to correct figures
+* Mention that we use Jan's data
+* More text and expand introductions
+* Fix certain plots and general cleaning
+* Visual representation of seasonal effects
+* Ex 5 
+* Finalizing Ex 3
