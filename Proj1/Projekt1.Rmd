@@ -145,7 +145,7 @@ estimatedLambda <- (aggregatedData %>%
 #   ylab("Density")
 ```
 
-The Poisson variables which have been fit for the different seasons and insurance branches and have had their parameter $\lambda_{ij}$ estimated through maximum-likelihood methods using the data from the 10 previous years. However, we note from the plots below that the poisson distribution does not fit the data very well. We seem to have overdispersion for $N_{11}$ and $N_{12}$, meaning that the variance is not truly equal to the expectation which is the case for a Poisson variable. For $N_{21}$ and $N_{22}$ date does however seem to indicate that we have underdispersion, meaning that the variance is lower than the expectation. Therefore we also fit negative binomial distributions to $N_{ij}$ as this distribution does not have the property of equal expectation and variance as the poisson distribution does. We can clearly see that the negative binomial distribution models our data better than the poisson distribution. We can also see this by examing QQ-plots, in Appendix, between the empirical distribution of our data compared to the poisson distribution and negative binomial distribution. 
+The Poisson variables which have been fit for the different seasons and insurance branches and have had their parameter $\lambda_{ij}$ estimated through maximum-likelihood methods using the data from the 10 previous years. However, we note from the plots below that the poisson distribution does not fit the data very well. We seem to have overdispersion for $N_{11}$ and $N_{12}$, meaning that the variance is not truly equal to the expectation which is the case for a Poisson variable. For $N_{21}$ and $N_{22}$ data does however seem to indicate that we have underdispersion, meaning that the variance is lower than the expectation. Therefore we also fit negative binomial distributions to $N_{ij}$ as this distribution does not have the property of equal expectation and variance as the poisson distribution does. We can clearly see that the negative binomial distribution models our data better than the poisson distribution. We can also see this by examing QQ-plots between the empirical distribution of our data compared to the poisson distribution and negative binomial distribution. 
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 # 
@@ -294,80 +294,6 @@ N21 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
 N22 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
   summarise(n = n()) %>%
   filter(ClaimType ==2, Season == 2)
-
-x=seq(0, max(N11$n), 1)
-
-fitPois <- fitdist(N11$n, "pois")
-dpo = dpois(x, lambda=fitPois$estimate["lambda"])
-
-fitNegBin <- fitdist(N11$n, "nbinom")
-dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
-
-plot.legend <- c("Poisson", "Negative Binomial")
-hist(N11$n, freq = FALSE, breaks = max(N11$n), xlab = "Claims", ylim = c(0, 0.12), main = "Branch 1 Season 1")
-lines(x=x, y=dpo, col="red", lwd = 2)
-lines(x=x, y=dneg, col="blue", lwd = 2, lty = "dashed")
-legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
-
-cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2)
-qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"))
-
-
-x=seq(0, max(N12$n), 1)
-
-fitPois <- fitdist(N12$n, "pois")
-dpo = dpois(x, lambda=fitPois$estimate["lambda"])
-
-fitNegBin <- fitdist(N12$n, "nbinom")
-dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
-
-plot.legend <- c("Poisson", "Negative Binomial")
-hist(N12$n, freq = FALSE, breaks = max(N12$n), xlab = "Claims", ylim = c(0, 0.50), main = "Branch 1 Season 2")
-lines(x=x, y=dpo, col="red", lwd = 2)
-lines(x=x, y=dneg, col="blue", lwd = 2, lty = "dashed")
-legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
-
-cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2)
-qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"))
-
-
-x=seq(0, max(N21$n), 1)
-
-fitPois <- fitdist(N21$n, "pois")
-dpo = dpois(x, lambda=fitPois$estimate["lambda"])
-
-fitNegBin <- fitdist(N21$n, "nbinom")
-dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
-
-plot.legend <- c("Poisson", "Negative Binomial")
-hist(N21$n, freq = FALSE, breaks = max(N21$n), xlab = "Claims", ylim = c(0, 0.15), main = "Branch 2 Season 1")
-lines(x=x, y=dpo, col="red", lwd = 2)
-lines(x=x, y=dneg, col="blue", lwd = 2, lty = "dashed")
-legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
-
-cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2)
-qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"))
-
-
-
-x=seq(0, max(N22$n), 1)
-
-fitPois <- fitdist(N22$n, "pois")
-dpo = dpois(x, lambda=fitPois$estimate["lambda"])
-
-fitNegBin <- fitdist(N22$n, "nbinom")
-dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
-
-plot.legend <- c("Poisson", "Negative Binomial")
-hist(N22$n, freq = FALSE, breaks = max(N22$n), xlab = "Claims", ylim = c(0, 0.80),main = "Branch 2 Season 2")
-lines(x=x, y=dpo, col="red", lwd = 2)
-lines(x=x, y=dneg, col="blue", lwd = 2,  lty = "dashed")
-legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
-
-cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2)
-qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"))
-
-
 ```
 
 
@@ -1115,8 +1041,84 @@ samples4 %>%
 
 We see from the two histograms that the total SL-cover implies a higher expected cost but also limits the total annual cost to $M =$  `r mVals3`. As such a more risk averse insurance provider might opt for the SL-cover to completly exclude the possiblity of large deviations in the annual costs whilst a more risk-taking insurance provide might avoid the SL-cover to reduce the expected annual cost.
 
+#Appendix 
 
 ```{r echo = FALSE, warning= FALSE, message = FALSE}
+
+
+x=seq(0, max(N11$n), 1)
+
+fitPois <- fitdist(N11$n, "pois")
+dpo = dpois(x, lambda=fitPois$estimate["lambda"])
+
+fitNegBin <- fitdist(N11$n, "nbinom")
+dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
+
+plot.legend <- c("Poisson", "Negative Binomial")
+hist(N11$n, freq = FALSE, breaks = max(N11$n), xlab = "Claims", ylim = c(0, 0.12), main = expression("Figure A1: Histogram of " ~ N[11]))
+lines(x=x, y=dpo, col="red", lwd = 2)
+lines(x=x, y=dneg, col="blue", lwd = 2, lty = "dashed")
+legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
+
+cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2, main = expression("Figure A2: Empirical and theoretical CDFs for " ~ N[11]))
+qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), main = expression("Figure A3: Q-Q plot for " ~ N[11]))
+
+
+x=seq(0, max(N12$n), 1)
+
+fitPois <- fitdist(N12$n, "pois")
+dpo = dpois(x, lambda=fitPois$estimate["lambda"])
+
+fitNegBin <- fitdist(N12$n, "nbinom")
+dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
+
+plot.legend <- c("Poisson", "Negative Binomial")
+hist(N12$n, freq = FALSE, breaks = max(N12$n), xlab = "Claims", ylim = c(0, 0.50), main = expression("Figure A4: Histogram of " ~ N[12]))
+lines(x=x, y=dpo, col="red", lwd = 2)
+lines(x=x, y=dneg, col="blue", lwd = 2, lty = "dashed")
+legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
+
+cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2, main = expression("Figure A5: Empirical and theoretical CDFs for " ~ N[12]))
+qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), main = expression("Figure A6: Q-Q plot for " ~ N[12]))
+
+
+x=seq(0, max(N21$n), 1)
+
+fitPois <- fitdist(N21$n, "pois")
+dpo = dpois(x, lambda=fitPois$estimate["lambda"])
+
+fitNegBin <- fitdist(N21$n, "nbinom")
+dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
+
+plot.legend <- c("Poisson", "Negative Binomial")
+hist(N21$n, freq = FALSE, breaks = max(N21$n), xlab = "Claims", ylim = c(0, 0.15), main = expression("Figure A7: Histogram of " ~ N[21]))
+lines(x=x, y=dpo, col="red", lwd = 2)
+lines(x=x, y=dneg, col="blue", lwd = 2, lty = "dashed")
+legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
+
+cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2, main = expression("Figure A8: Empirical and theoretical CDFs for " ~ N[21]))
+qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), main = expression("Figure A9: Q-Q plot for " ~ N[21]))
+
+
+
+x=seq(0, max(N22$n), 1)
+
+fitPois <- fitdist(N22$n, "pois")
+dpo = dpois(x, lambda=fitPois$estimate["lambda"])
+
+fitNegBin <- fitdist(N22$n, "nbinom")
+dneg = dnbinom(x, size=fitNegBin$estimate["size"], mu = fitNegBin$estimate["mu"])
+
+plot.legend <- c("Poisson", "Negative Binomial")
+hist(N22$n, freq = FALSE, breaks = max(N22$n), xlab = "Claims", ylim = c(0, 0.80), main = expression("Figure A10: Histogram of " ~ N[22]))
+lines(x=x, y=dpo, col="red", lwd = 2)
+lines(x=x, y=dneg, col="blue", lwd = 2,  lty = "dashed")
+legend("topright", plot.legend, col=c("red", "blue"), lwd=2, cex = 1)
+
+cdfcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), lwd = 2, main = expression("Figure A11: Empirical and theoretical CDFs for " ~ N[22]))
+qqcomp(list(fitPois, fitNegBin), legendtext = plot.legend, fitcol = c("red", "blue"), main = expression("Figure A12: Q-Q plot for " ~ N[22]))
+
+
 # 
 # #QQPLOT FOR N11
 # 
