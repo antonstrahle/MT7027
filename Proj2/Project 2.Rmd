@@ -330,13 +330,13 @@ From the previous figures it looks as if we might have some annual dependencies,
 In this exercise we wish to examine the variance parameter for the last development year (i.e. development year 10). We can do this by implementing the formulas presented in Mack's paper. First we have that
 
 $$
-Var(R) = \sum_{i=2}^{I}Var(C_{i,I}) + C_{i,I}\left(\sum_{j=i+1}^I C_{j,I}\right)\sum_{k=I+1-i}^{I-1}\frac{2\sigma_k^2}{f_k^2\sum_{n=1}^{I-k}C_{n,k}}
+\widehat{\text{s.e.}}(R)^2 = \sum_{i=2}^{I} \widehat{\text{s.e.}}(C_{i,I})^2 + C_{i,I}\left(\sum_{j=i+1}^I C_{j,I}\right)\sum_{k=I+1-i}^{I-1}\frac{2\hat\sigma_k^2}{\hat f_k^2\sum_{n=1}^{I-k}C_{n,k}}
 $$
 
 where
 
 $$
-Var(C_{i,I}) = C_{i,I}^2 \sum_{k=I+1-i}^{I-1} \frac{\sigma_k^2}{f_k^2}\left(\frac{1}{C_{i,k}} + \frac{1}{\sum_{j=1}^{I-k}C_{j,k}}\right)
+\widehat{\text{s.e.}}(C_{i,I})^2 = C_{i,I}^2 \sum_{k=I+1-i}^{I-1} \frac{\hat\sigma_k^2}{\hat f_k^2}\left(\frac{1}{C_{i,k}} + \frac{1}{\sum_{j=1}^{I-k}C_{j,k}}\right)
 $$
 
 and where we estimate $\sigma_k^2$ by
@@ -430,8 +430,18 @@ riskCalculation <- function(ct, ctAlt){
       sum = sum + C[i,n]^2*(sigmaHat[k]/fHat[k]^2*(1/C[i,k] + 1/sum(C[1:(n-k),k]))) 
       
     }
-     
-    sum = sum + C[i,n]*sum(C[(i+1):n,n])*2*sum((sigmaHat/fHat^2)[(n+1-i):(n-1)])/sum(C[1:(n-k), k])
+    
+    if(i < n){
+      
+      extra = C[i,n]*sum(C[(i+1):n,n])*2*sum((sigmaHat/fHat^2)[(n+1-i):(n-1)])/sum(C[1:(n-k), k])
+      
+    } else {
+      
+      extra = 0
+      
+    }
+    
+    sum = sum + extra
     
   }
  
@@ -439,15 +449,59 @@ riskCalculation <- function(ct, ctAlt){
   
 }
 
-#SUBSCRIPT OUT OF BOUNDS
+risk1 <- unname(riskCalculation(ct1, ct1Alt))
 
-#riskCalculation(ct1, ct1Alt)
+risk2 <- unname(riskCalculation(ct2, ct2Alt))
+
+kable(rbind(c("Product 1", risk1), c("Product 2", risk2)), caption = "Reserve Risk") %>%  kable_styling(latex_options =c("hold_position"))
 
 ```
 
-By doing this we get the following ERROR :((
+We see that there is vastly more risk in Product 2 than Product 1 which seems understandable if we note that there seems to be no new claims during the last six four development years, meaning that the risk only propogates in the initial 6 development years, at least according to our observed years. Another factor that leads to this difference is the fact that the ultimate claims reserve is greater for the first insurance product compared to the second.
 
-#Exercise 5
+#Exercise 4
+
+In this exercise we aim to predict the ultimate claim amounts $R_1$ and $R_2$ for insurance product 1 and 2 respectiveley. We then want to update our predictions assuming that we access to more data. In this case we use the first 10 years of data which have been fully developed whilst assuming that we only have access to a fraction of those years. Initially we assume to know the outcomes of the first 5 years which can be presented in the following claims triangles.
+
+```{r echo = FALSE, warning = FALSE}
+
+
+disp1 <- data %>% 
+  rbind(c(1,1,10,1,1,0)) %>% 
+  rbind(c(1,10,10,1,1,0)) %>% 
+  filter(ClaimType == 1) %>% 
+  filter(ClaimYear + DevelopmentYear <= 11) %>% 
+  group_by(ClaimYear, DevelopmentYear) %>% 
+  summarize(Total = sum(ClaimCost)) %>%
+  mutate(Total = cumsum(Total)) %>% 
+  spread(value = Total, key = DevelopmentYear) %>% 
+  ungroup() %>% 
+  filter(ClaimYear <= 10) %>% 
+  select(-ClaimYear)
+
+disp2 <- data %>% 
+  rbind(c(2,1,10,1,1,0)) %>% 
+  rbind(c(2,10,10,1,1,0)) %>% 
+  filter(ClaimType == 2) %>% 
+  filter(ClaimYear + DevelopmentYear <= 11) %>% 
+  group_by(ClaimYear, DevelopmentYear) %>% 
+  summarize(Total = sum(ClaimCost)) %>%
+  mutate(Total = cumsum(Total)) %>% 
+  spread(value = Total, key = DevelopmentYear) %>% 
+  ungroup() %>% 
+  filter(ClaimYear <= 10) %>% 
+  select(-ClaimYear)
+
+
+kable(disp1, caption = "Paid claims triangle for product 1", row.names = c(1:10)) %>%
+  kable_styling(latex_options=c("hold_position", "scale_down"))
+
+kable(disp2, caption = "Paid claims triangle for product 2", row.names = c(1:10)) %>%
+  kable_styling(latex_options=c("hold_position", "scale_down"))
+
+```
+
+We then add additional years of data and recalculate the predictions which gives us the following table.  
 
 ```{r echo = FALSE, warning = FALSE}
 
@@ -523,36 +577,68 @@ fillAlt <- function(ct, known = 0){
 }
 
 #Branch 1
+# 
+# uc1 <- c()
+# 
+# for(i in 0:8){
+#   
+#   obs <- as.matrix(fillAlt(prevct1, i))
+#   
+#   d <- row(obs)-col(obs)
+# 
+#   diags <- split(obs[10:1,], d)[10:19]
+#   
+#   uc1 <- c(uc1, sum(obs[(i+1):10,10] - unlist(diags[i+1])))
+#   
+# }
+# 
+# 
+# uc2 <- c()
+# 
+# for(i in 0:8){
+#   
+#   obs <- as.matrix(fillAlt(prevct2, i))
+#   
+#   d <- row(obs)-col(obs)
+# 
+#   diags <- split(obs[10:1,], d)[10:19]
+#   
+#   uc2 <- c(uc2, sum(obs[(i+1):10,10] - unlist(diags[i+1])))
+#   
+# }
 
-uc1 <- c()
-
-for(i in 0:8){
-  
-  val <- sum(fillAlt(prevct1, i)[,10])
-  
-  uc1 <- c(uc1, val)
-  
-}
-
-kable(cbind(c(0:8),uc1), caption = "Ultimate claim amounts over observed years for branch 1", 
-      col.names = c("Year","UCA"))
-
-#Branch 2
 
 uc2 <- c()
 
 for(i in 0:8){
-  
-  val <- sum(fillAlt(prevct2, i)[,10])
-  
-  uc2 <- c(uc2, val)
-  
+
+  obs <- as.matrix(fillAlt(prevct2, i))
+
+  uc2 <- c(uc2, sum(obs[,10]))
+
 }
 
-kable(cbind(c(0:8),uc2), caption = "Ultimate claim amounts over observed years for branch 2", 
-      col.names = c("Year","UCA"))
+uc1 <- c()
+
+for(i in 0:8){
+
+  obs <- as.matrix(fillAlt(prevct1, i))
+
+  uc1 <- c(uc1, sum(obs[,10]))
+
+}
+
+cbind(rep(1,9),c(0:8),uc1) %>% 
+  rbind(cbind(rep(2,9),c(0:8),uc2)) %>% 
+  data.frame() %>% 
+  setNames(c("Branch", "Year", "Reserve")) %>%
+  spread(value = Reserve, key = Year) %>% 
+  kable(caption = "Development of ultimate claims predictions given additional years of data") %>%
+  kable_styling(latex_options=c("hold_position", "scale_down"))
 
 ```
+
+The main thing to take away from this is that the initial predictions seem to be, in persepctive, quite good predictors of the ultimate claim amounts.
 
 #Exercise 5
 

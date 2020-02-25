@@ -21,3 +21,4 @@ Project 2:
 * Visual representation of seasonal effects
 * Ex 5 
 * Finalizing Ex 3
+* Kolla Spearman Rank Test
