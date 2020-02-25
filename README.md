@@ -20,5 +20,4 @@ Project 2:
 * Fix certain plots and general cleaning
 * Visual representation of seasonal effects
 * Ex 5 
-* Finalizing Ex 3
 * Kolla Spearman Rank Test
