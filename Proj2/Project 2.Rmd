@@ -250,7 +250,7 @@ res2 <- ggplot(resFrame2, aes(x = Ci, y = Res)) +
 
 #FIXA SNYGGT!!
 
-#grid.arrange(resFrame1, resFrame2)
+grid.arrange(res1, res2)
 
 ```
 
@@ -259,8 +259,6 @@ All years with more than 6 points, the threshold suggested by Mack, seem to show
 Lastly we want to examine whether or not we have any calender year effects. An example of a scenario where the assumption of independent years might be violated is if there is an overhaul of the way claims are handled which comes into effect during a specific year.
 
 ```{r echo = FALSE, warning = FALSE}
-
-#MAX GÖR FÖRDELNINGSHISTROGRAM FÖR ÅRENS RANKING FÖR BÅDA BRANCHES!!
 
 #Branch 1
 
