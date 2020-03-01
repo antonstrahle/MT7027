@@ -90,7 +90,7 @@ data %>%
 
 We note from Figure 2 and 3 that there does not seem to be any major difference in the number of claims between the years. We can therefore model the data separately for low intensity periods and high intensity periods for each branch. 
 
-We now wish to fit homogeneous Poisson distributions $N_ij$ (where $i$ represents the insurance type and $j$ represents the season) to the months of each season and each insurance product.
+We now wish to fit homogeneous Poisson distributions $N_{ij}$ (where $i$ represents the insurance type and $j$ represents the season) to the months of each season and each insurance product.
 
 $$
 N_{ij} \sim \text{Po}(\lambda_{ij})
@@ -108,28 +108,28 @@ aggregatedData <- data %>% group_by(ClaimType, ClaimDay, Month, Year, Season) %>
 estimatedLambda <- (aggregatedData %>% 
   group_by(ClaimType, Season) %>% 
   summarize(lambda = mean(NumberOfClaims)))$lambda
-# 
-# aggregatedData %>% 
-#   filter(ClaimType == 1) %>% 
-#   filter(Season == 1) %>% 
+
+# aggregatedData %>%
+#   filter(ClaimType == 1) %>%
+#   filter(Season == 1) %>%
 #   ggplot() +
 #   geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
 #   geom_line(data = data.frame(x=c(0:35)), aes(x=x, y=dpois(x, estimatedLambda[1]))) +
 #   xlab(expression(N[11])) +
 #   ylab("Density")
 # 
-# aggregatedData %>% 
-#   filter(ClaimType == 1) %>% 
-#   filter(Season == 2) %>% 
+# aggregatedData %>%
+#   filter(ClaimType == 1) %>%
+#   filter(Season == 2) %>%
 #   ggplot() +
 #   geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
 #   geom_line(data = data.frame(x=c(0:17)), aes(x=x, y=dpois(x, estimatedLambda[2]))) +
 #   xlab(expression(N[12])) +
 #   ylab("Density")
 # 
-# aggregatedData %>% 
-#   filter(ClaimType == 2) %>% 
-#   filter(Season == 1) %>% 
+# aggregatedData %>%
+#   filter(ClaimType == 2) %>%
+#   filter(Season == 1) %>%
 #   ggplot() +
 #   geom_bar(aes(x=NumberOfClaims, y = (..count..)/sum(..count..))) +
 #   geom_line(data = data.frame(x=c(0:20)), aes(x=x, y=dpois(x, estimatedLambda[3]))) +
@@ -146,22 +146,22 @@ estimatedLambda <- (aggregatedData %>%
 #   ylab("Density")
 ```
 
-The Poisson variables which have been fit for the different seasons and insurance branches and have had their parameter $\lambda_{ij}$ estimated through maximum-likelihood methods using the data from the 10 previous years. However, we note from the plots below that the poisson distribution does not fit the data very well. We seem to have overdispersion for $N_{11}$ and $N_{12}$, meaning that the variance is not truly equal to the expectation which is the case for a Poisson variable. For $N_{21}$ and $N_{22}$ data does however seem to indicate that we have underdispersion, meaning that the variance is lower than the expectation. Therefore we also fit negative binomial distributions to $N_{ij}$ as this distribution does not have the property of equal expectation and variance as the poisson distribution does. We can clearly see that the negative binomial distribution models our data better than the poisson distribution. We can also see this by examing QQ-plots between the empirical distribution of our data compared to the poisson distribution and negative binomial distribution. 
+The Poisson variables which have been fit for the different seasons and insurance branches and have had their parameter $\lambda_{ij}$ estimated through maximum-likelihood methods using the data from the 10 previous years. However, we note from the plots below that the poisson distribution does not fit the data very well as can be seen in the figures in the Appendix. We seem to have overdispersion for some periods and branches, meaning that the variance is not truly equal to the expectation which is the case for a Poisson variable. For others combinations of seasons and branches the data does however seem to indicate that we have underdispersion, meaning that the variance is lower than the expectation. Therefore we also fit negative binomial distributions to $N_{ij}$ as this distribution does not have the property of equal expectation and variance as the poisson distribution does. We can clearly see that the negative binomial distribution models our data better than the poisson distribution. We can also see this by examing QQ-plots between the empirical distribution of our data compared to the poisson distribution and negative binomial distribution. 
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
-# 
-# library(fitdistrplus)
-# # ggplot(N11, aes(sample = n)) +
-# #   stat_qq(distribution = qpois, dparams = mean(N11$n)) +
-# #   stat_qq_line(distribution = qpois, dparams = mean(N11$n))
-# 
-# #Vi borde undersöka histogram, fördelningsfunktion och qqplot för antal skador. 
-# #Detta gör vi för varje säsong samt produkt
-# #Jämför med poisson samt negativ binomial (blandad poisson)
-# 
-# #Plots for N_11
-# N11 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-#   summarise(n = n()) %>% 
+
+library(fitdistrplus)
+# ggplot(N11, aes(sample = n)) +
+#   stat_qq(distribution = qpois, dparams = mean(N11$n)) +
+#   stat_qq_line(distribution = qpois, dparams = mean(N11$n))
+
+#Vi borde undersöka histogram, fördelningsfunktion och qqplot för antal skador.
+#Detta gör vi för varje säsong samt produkt
+#Jämför med poisson samt negativ binomial (blandad poisson)
+
+#Plots for N_11
+# N11 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
+#   summarise(n = n()) %>%
 #   filter(ClaimType ==1, Season == 1)
 # 
 # fit <- fitdistr(N11$n, "Negative Binomial")
@@ -171,29 +171,29 @@ The Poisson variables which have been fit for the different seasons and insuranc
 # df <- df[order(df$x), ]
 # df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
 # 
-# plotcdfN11 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
-#   geom_line() + 
+# plotcdfN11 <- ggplot(df, aes(x, ecdf, colour = ggg)) +
+#   geom_line() +
 #   scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
 #   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
 #   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-#   xlab("Number of claims") + 
+#   xlab("Number of claims") +
 #   ylab("Empirical Cumulative Distribution Function") +
 #   ggtitle(expression("Empirical distribution of" ~ N[11]))
 # 
 # # plothistN11 <- ggplot(df, aes(x=x, fill = ggg)) +
 # #   geom_histogram(aes(y = ..density..),position = "dodge2", breaks = 1:35) +
 # #   scale_fill_manual(values=c("black", "blue", "red"))
-#   
+# 
 # plothistN11 <- ggplot(df, aes(x=x, fill = ggg)) +
 #   geom_bar(aes(y = ..prop..), position = position_dodge(preserve = "single")) +
 #   scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
 #   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
 #   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-#   xlab("Number of claims") 
+#   xlab("Number of claims")
 # 
 # #Plots for N_12
-# N12 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-#   summarise(n = n()) %>% 
+# N12 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
+#   summarise(n = n()) %>%
 #   filter(ClaimType ==1, Season == 2)
 # 
 # fit <- fitdistr(N12$n, "Negative Binomial")
@@ -201,12 +201,12 @@ The Poisson variables which have been fit for the different seasons and insuranc
 # 
 # df <- df[order(df$x), ]
 # df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-# plotcdfN12 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
-#   geom_line() + 
+# plotcdfN12 <- ggplot(df, aes(x, ecdf, colour = ggg)) +
+#   geom_line() +
 #   scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
 #   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
 #   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-#   xlab("Number of claims") + 
+#   xlab("Number of claims") +
 #   ylab("Empirical Cumulative Distribution Function")+
 #   ggtitle(expression("Empirical distribution of" ~ N[12]))
 # 
@@ -215,12 +215,12 @@ The Poisson variables which have been fit for the different seasons and insuranc
 #   scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
 #   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
 #   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9))+
-#   xlab("Number of claims") 
+#   xlab("Number of claims")
 # 
 # 
 # #Plots for N_21
-# N21 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-#   summarise(n = n()) %>% 
+# N21 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
+#   summarise(n = n()) %>%
 #   filter(ClaimType ==2, Season == 1)
 # 
 # fit <- fitdistr(N21$n, "Negative Binomial")
@@ -228,12 +228,12 @@ The Poisson variables which have been fit for the different seasons and insuranc
 # 
 # df <- df[order(df$x), ]
 # df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-# plotcdfN21 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
-#   geom_line() + 
+# plotcdfN21 <- ggplot(df, aes(x, ecdf, colour = ggg)) +
+#   geom_line() +
 #   scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
 #   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
 #   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-#   xlab("Number of claims") + 
+#   xlab("Number of claims") +
 #   ylab("Empirical Cumulative Distribution Function")+
 #   ggtitle(expression("Empirical distribution of" ~ N[21]))
 # 
@@ -242,12 +242,12 @@ The Poisson variables which have been fit for the different seasons and insuranc
 #   scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
 #   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
 #   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-#   xlab("Number of claims") 
+#   xlab("Number of claims")
 # 
 # 
 # #Plots for N_22
-# N22 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>% 
-#   summarise(n = n()) %>% 
+# N22 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
+#   summarise(n = n()) %>%
 #   filter(ClaimType == 2, Season == 2)
 # 
 # fit <- fitdistr(N22$n, "Negative Binomial")
@@ -255,12 +255,12 @@ The Poisson variables which have been fit for the different seasons and insuranc
 # 
 # df <- df[order(df$x), ]
 # df$ecdf <- ave(df$x, df$ggg, FUN=function(x) seq_along(x)/length(x))
-# plotcdfN22 <- ggplot(df, aes(x, ecdf, colour = ggg)) + 
-#   geom_line() + 
+# plotcdfN22 <- ggplot(df, aes(x, ecdf, colour = ggg)) +
+#   geom_line() +
 #   scale_colour_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
 #   scale_x_continuous(breaks = seq(0, max(df$x), by = 5 )) +
 #   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-#   xlab("Number of claims") + 
+#   xlab("Number of claims") +
 #   ylab("Empirical Cumulative Distribution Function")+
 #   ggtitle(expression("Empirical distribution of" ~ N[22]))
 # 
@@ -269,7 +269,7 @@ The Poisson variables which have been fit for the different seasons and insuranc
 #   scale_fill_manual(name="Distribution", values=c("black", "green", "blue"), labels=c('Emp','Pois','NegBin')) +
 #   scale_x_continuous(breaks = seq(0, max(df$x), by = 2 )) +
 #   theme(legend.position = "top", legend.text = element_text(size = 7), legend.title = element_text(size = 9)) +
-#   xlab("Number of claims") 
+#   xlab("Number of claims")
 # 
 # library(gridExtra)
 # grid.arrange(plotcdfN11, plothistN11, nrow = 1)
@@ -301,7 +301,7 @@ N22 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
 \newpage
 #Exercise 2
 
-In this exercise we analyze the claim costs over time for each of the two insurance branches. We are looking for possible patterns in the claim costs over time by analyzing the distribution of the claim costs. In the following figures we can observe the average logarithm of the claim cost for each moth and insuranse branch. The use of logarithm is used to make the figure more interpretable. 
+In this exercise we analyze the claim costs over time for each of the two insurance branches. We are looking for possible patterns in the claim costs over time by analyzing the distribution of the claim costs. In the following figures we can observe the average logarithm of the claim cost for each moth and insuranse branch. A log-transform is used to make the figure more interpretable. 
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
 #Monthly boxplot
@@ -353,7 +353,7 @@ data %>%
 ```
 
 We note from Figure 5 that the average claim sizes each day seem to be time independet. An interesting factor is however that all extremely deviating claim costs seem to occur during the summer (i.e period 2), which may be a result of a lower number of claims during this period. In conclussion it seems as if the claim costs are independent of time. 
-Another thing that we want to examine is whether or not we have independence between the average claim costs and the number of claims.
+
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
 
@@ -443,7 +443,7 @@ qqcomp(list(fitW, fitG , fitLN, fitP, fitB), legendtext = plot.legend, fitcol = 
 We can see from the histograms in Figure 7 and 10 that a fitted Burr distribution seems to model the data well, however we can see from the QQ-plots in Figure 9 and 12 that we run into problems in the tails. 
 
 Therefore we tried to fit different distributions for the tail, compared to the rest of the data. That is, we fit a distribution to claim cost below a chosen number and another distribution for cost above that number. However, all our attempts led to a bad fit. 
-Since we could not achive a good fit using common distributions we fit the data using splines, using the R package `logspline`, which gives a very good fit, however one have to be careful of overfitting when using splines. 
+Since we could not achive a good fit using common distributions we fit the data using splines, using the R package `logspline`, which gives a very good fit, however one has to be careful of overfitting when using splines. 
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
 library(logspline)
@@ -540,7 +540,6 @@ ggplot(aggClaims, aes(x= Counts.x, y = Counts.y)) +
 
 We note from Figure 17 that there seems to be some kind of positive correlation between the two insurance products, meaning that we cannot model the claims for each product separatley, but that we instead have to model them jointly. We can however still model the claim costs of the two branches independently as we saw in the previous exercise.
 
-
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
 data_type1 <- data %>% filter(ClaimType == 1)
 data_type2 <- data %>% filter(ClaimType == 2)
@@ -598,11 +597,11 @@ More specifically we follow these steps to simulate number of claims for one mon
 Note that these steps simulate the number of claims for one month and thus the $\rho$ differs from month to month and $G$ and $H$ differs between seasons, as discussed in exercise 1. 
 For each month we use the $\rho$ we have in Table 1. 
 
-We could also have used the Gauss-copula-method to simulate claim costs, however since we do not have as much correlation as for the number of claims and that it is assumed that we have an equal number of claims for each branch which is not necessarily true in our case, we chose not to use copulas for the claim costs. We assume that the dependency structure between the branches is captured in the number of claims. Threfore we continue by, for each claim, simulate a cost from the corresponding logspline approximation to assign to that claim and assume independence between costs. 
+We could also have used the Gauss-copula-method to simulate claim costs, however since we do not have as much correlation as for the number of claims and that it is assumed that we have an equal number of claims for each branch which is not necessarily true in our case, we chose not to use copulas for the claim costs. We assume that the dependency structure between the branches is captured in the number of claims. Threfore we continue by, for each claim, simulating a cost from the corresponding logspline approximation to assign to that claim and assume independence between costs. 
 
 However, since our results in the following exercises did not differ much, using bootstrap compared to the Gauss-copula method, we chose to only include results from the bootstrap method.
 
-We bootstrap $1000$ years using the data for our $10$ year period and we can see the distributions of the total annual costs in Figure 18 below. We can see that branch $2$ have both a higher expectation and variance compared to branch $1$.
+We bootstrap $1000$ years using the data for our $10$ year period and we can see the distributions of the total annual costs in Figure 18 below. We can see that branch $2$ has both a higher expectation and variance compared to branch $1$.
 
 ```{r echo = FALSE, message = FALSE, cache = TRUE, warning = FALSE}
 
@@ -742,7 +741,7 @@ simYearCopula <- function(corrTypesTotalClaims){
 
 #Exercise 5
 
-We now want to implement two separate XL-covers. The covers caps losses for the $10\%$ worst claims for each respective insurance branch. For our two branches these cut-off $M_1$ and $M_2$ are the following
+We now want to implement two separate XL-covers. The covers caps losses for the $10\%$ worst claims for each respective insurance branch. For our two branches, based on a large number of simulations, these cut-offs $M_1$ and $M_2$ turn out to be the following
 
 ```{r echo = FALSE, warning = FALSE, cache=TRUE, message = FALSE}
 
@@ -840,7 +839,7 @@ kable(prices, caption = "Prices for the two XL-covers")
 
 ```
 
-As previosuly mentioned both covers turn out to be fairly pricy, specifically the cover for branch 2. We now want to examine how the purchase of these XL-covers would impact our total losses for the forthcoming year. We saw a simulated distribution of the losses for the two branches without the XL-covers in Figure 19. If we implement the covers we get the following simulated distributions.
+As previosuly mentioned both covers turn out to be fairly pricy, specifically the cover for branch 2. We now want to examine how the purchase of these XL-covers would impact our total losses for the forthcoming year. We saw a simulated distribution of the losses for the two branches without the XL-covers in Figure 18. If we implement the covers we get the following simulated distributions.
 
 ```{r echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE}
 
@@ -860,7 +859,7 @@ samples2 %>%
 
 ```
 
-When comparing branch 1 and 2 in Figure 21 we note that that the approximate expected cost for the forthcoming year is slighly higher when purchasing the XL-cover for the respective branches. This increase in the expected cost does however come with the benefit of reducing the weight of the tails of the distributions. As such, the purchase of the XL-covers seem to increase the average cost whilst reducing the overall risk. For a risk averse insurance provide these XL-covers could therefore serve as an excellent tool to reduce the overall risk.
+When comparing Figure 18 and Figure 21 we note that that the approximate expected cost for the forthcoming year is slighly higher when purchasing the XL-cover for the respective branches. This increase in the expected cost does however come with the benefit of reducing the weight of the tails of the distributions. As such, the purchase of the XL-covers seem to increase the average cost whilst reducing the overall risk. For a risk averse insurance provide these XL-covers could therefore serve as an excellent tool to reduce the overall risk.
 
 We can also observe the how the purchase of both covers affect the distribution of the overall annual cost.
 
@@ -896,6 +895,13 @@ mVals2 <- samples1 %>%
   group_by(Type) %>% 
   summarize(M = quantile(p = 0.9, Total))
 
+```
+
+The cut-offs for the SL-covers, based on a large number of simulations, turn out to be the following.
+
+`r kable(mVals2, caption = "Cut-offs")`
+
+```{r echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE}
 #SL-cover 
 
 #Cut-off and prices should probably rely on simulated data since we have very few data points
@@ -924,7 +930,7 @@ grid.arrange(noSL, SL)
 
 ```
 
-In the case of the SL-covers we note from Figure 24 and 25 that, unlike for the XL-covers, that we have no extreme deviations in the annual cost (compared to the deviations in the distribution of the claim costs). This is due to the fact that the annual cost is the aggregation of a very large number of individual claim costs, thus an outlier of the same proportions as those in the case of the individual claim costs will be theoretically extremely unlikely and practically never occur. In other words, by aggregating the claims we reduce the overall risk of large deviations. As such the prices for the SL-covers should in some sense be proportionally lower compared to those of the XL-covers.
+In the case of the SL-covers we note from Figure 24 and 25 that, unlike for the XL-covers, that we have no extreme deviations in the annual cost (compared to the deviations in the distribution of the claim costs). This is due to the fact that the annual cost is the aggregation of a very large number of individual claim costs, thus an outlier of the same proportions as those in the case of the individual claim costs will be theoretically extremely unlikely and practically never occur. In other words, by aggregating the claims we reduce the overall risk of large deviations. As such the prices for the SL-covers should not be as extreme compared to those of the XL-covers.
 
 ```{r echo = FALSE}
 
@@ -944,7 +950,7 @@ The prices of the two SL-covers are as follows
 
 `r kable(prices2, caption = "Prices for the two SL-covers")` 
 
-Here we note from Table 4 that the prices are actually extremely low, for insurance branch 1 the annual cost of the SL-cover but a drop in the ocean compared to the overall annual claim costs. The price for the SL-cover for branch 2 is a bit more pricy which is due to the fact of the higher variance of the annual claim costs distribution as was previously noted.
+Here we note from Table 5 that the prices are actually extremely low, for both insurance branches the annual cost of the SL-cover is but a drop in the ocean compared to the overall annual claim costs. The price for the SL-cover for branch 2 is a bit more pricy which is due to the fact of the higher variance of the annual claim costs distribution as was previously noted. 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -987,6 +993,8 @@ grid.arrange(plotWithoutSL, plotWithSL, nrow = 1)
 ```
 
 From Figure 27 and 28 we can see that by purchasing both covers we increase the expectation slightly whilst also skewing the distribution positivley as in the case of the individual cost distributions of the branches.
+
+\newpage
 
 #Exercise 7
 
