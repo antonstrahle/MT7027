@@ -202,9 +202,9 @@ lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = funct
 
 ```
 
-We note that the linear approximation seems to hold. Secondly we wish to examine the weighted residuals $\frac{C_{i,k+1}-C_{i,k}f_k}{C_{i,k}}$ in order to see if we have randomness, i.e. no systematic behaviours within the years.  
+We note that the linear approximation seems to hold. 
 
-```{r echo = FALSE, warning = FALSE}
+```{r echo = FALSE, warning = FALSE, include = FALSE}
 
 residualHelper <- function(ct){
   
@@ -254,7 +254,91 @@ grid.arrange(res1, res2)
 
 ```
 
-All years with more than 6 points, the threshold suggested by Mack, seem to showcase random behaviour and no clear signs of any systematic deviations. 
+```{r echo = FALSE, warning = FALSE}
+#JAN FIXAR
+
+estimate_f_k0<- function(ct){
+  I <- nrow(ct)
+  fVec <- c()
+  for(k in 1:(I-1)){
+    fVec[k] <- sum(ct[1:(I-k), k] * ct[1:(I-k), k+1])/sum(ct[1:(I-k), k]^2)
+  }
+  return(fVec)
+}
+
+estimate_f_k2<- function(ct){
+  I <- nrow(ct)
+  fVec <- c()
+  for(k in 1:(I-1)){
+    fVec[k] <- 1/(I-k) * sum(ct[1:(I-k), k+1]/ct[1:(I-k), k])
+  }
+  return(fVec)
+}
+
+plot_residual_for_CL_f_k0 <- function(k, ct, product){
+  C_ik_plus1 <- as.data.frame(ct)[1:(10 - k), k + 1]
+  C_ik <- as.data.frame(ct)[1:(10 - k), k]
+  f_k <- estimate_f_k0(ct)[k]
+  plot(C_ik, (C_ik_plus1 - C_ik * f_k), ylab = "Weighted residual", main = paste("Product ", product))
+  abline(h = 0)
+}
+
+plot_residual_for_CL_f_k1 <- function(k, ct, product){
+  C_ik_plus1 <- as.data.frame(ct)[1:(10 - k), k + 1]
+  C_ik <- as.data.frame(ct)[1:(10 - k), k]
+  f_k <- estimateF(ct)[k]
+  plot(C_ik, (C_ik_plus1 - C_ik * f_k) / sqrt(C_ik) , ylab = "Weighted residual", main = paste("Product ", product))
+  abline(h = 0)
+}
+
+plot_residual_for_CL_f_k2 <- function(k, ct, product){
+  C_ik_plus1 <- as.data.frame(ct)[1:(10 - k), k + 1]
+  C_ik <- as.data.frame(ct)[1:(10 - k), k]
+  f_k <- estimate_f_k2(ct)[k]
+  plot(C_ik, (C_ik_plus1 - C_ik * f_k) / C_ik, ylab = "Weighted residual", main = paste("Product ", product))
+  abline(h = 0)
+}
+
+# par(mfrow = c(1, 2))
+# plot_residual_for_CL_f_k0(k=1, ct1, 1)
+# plot_residual_for_CL_f_k0(k=1, ct2, 2)
+# 
+# par(mfrow = c(1, 2))
+# plot_residual_for_CL_f_k1(k=1, ct1, 1)
+# plot_residual_for_CL_f_k1(k=1, ct2, 2)
+# 
+# par(mfrow = c(1, 2))
+# plot_residual_for_CL_f_k2(k=1, ct1, 1)
+# plot_residual_for_CL_f_k2(k=1, ct2, 2)
+
+```
+
+
+We continue by investigating the third chain ladder assumption. According to Mack's article it is suggested to plot three different plots of residuals. First we plot $C_{i,k+1} - C_{i,k}f_{k0}$ against $C_{i,k}$, where $f_{k0} = \sum_{i=1}^{I-k} C_{i,k} C_{i,k+1} / \sum_{i=1}^{I-k} C_{i,k}^2$. 
+
+```{r echo = FALSE, warning = FALSE}
+par(mfrow = c(1, 2))
+plot_residual_for_CL_f_k0(k=1, ct1, 1)
+plot_residual_for_CL_f_k0(k=1, ct2, 2)
+```
+
+Then we plot $(C_{i,k+1} - C_{i,k}f_{k1}) / \sqrt{C_{i,k}}$ against $C_{i,k}$, where $f_{k1} = \sum_{i=1}^{I-k} C_{i,k+1} / \sum_{i=1}^{I-k} C_{i,k}$. 
+
+```{r echo = FALSE, warning = FALSE}
+par(mfrow = c(1, 2))
+plot_residual_for_CL_f_k1(k=1, ct1, 1)
+plot_residual_for_CL_f_k1(k=1, ct2, 2)
+```
+
+Lastly, we plot $(C_{i,k+1} - C_{i,k}f_{k2}) / C_{i,k}$ against $C_{i,k}$, where $f_{k2} = \frac{1}{I-k}\sum_{i=1}^{I-k} ( C_{i,k+1} / C_{i,k})$. 
+
+```{r echo = FALSE, warning = FALSE}
+par(mfrow = c(1, 2))
+plot_residual_for_CL_f_k2(k=1, ct1, 1)
+plot_residual_for_CL_f_k2(k=1, ct2, 2)
+```
+
+Mack suggest that all this should be done for every developement year with at least $6$ data points, i.e for $k \leq I - 6$, however we chose do only include plots for $k=1$ since we could not see any systematic rasiduals or non-random pattern for any developement years. We can therefore conclude that the third chain ladder assumption is satisfied.
 
 Lastly we want to examine whether or not we have any calender year effects. An example of a scenario where the assumption of independent years might be violated is if there is an overhaul of the way claims are handled which comes into effect during a specific year.
 
