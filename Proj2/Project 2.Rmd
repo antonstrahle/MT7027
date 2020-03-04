@@ -343,7 +343,80 @@ Mack suggest that all this should be done for every developement year with at le
 Lastly we want to examine whether or not we have any calender year effects. An example of a scenario where the assumption of independent years might be violated is if there is an overhaul of the way claims are handled which comes into effect during a specific year.
 
 ```{r echo = FALSE, warning = FALSE}
+devFactorTriangle <- function(ct){
+  I = nrow(ct)
+  devFactorTriangle <- data.frame(data.frame(ct)[1:I,2] / data.frame(ct)[1:I,1])
+  for(k in 2:(I-1)){
+    devFactorTriangle <- cbind(devFactorTriangle, data.frame(data.frame(ct)[1:I,k+1] / data.frame(ct)[1:I,k]))
+    
+  }
+  devFactorTriangle %>% setNames(paste0("F", 1:(I-1))) %>% slice(1:(I-1))
+}
 
+devFactor1 <- devFactorTriangle(ct1)
+
+SorL <- function(x) (x = ifelse(x > mean(x, na.rm = TRUE), "L", ifelse(x < mean(x, na.rm = TRUE), "S", "-")))
+devFactor1SorL <- devFactor1 %>% mutate_all(SorL) 
+
+#notice this is not the same I as in function above since we sliced, that is this I is one smaller
+I = nrow(devFactor1)
+flipped <- devFactor1SorL[,I:1]
+
+Sj <- c()
+Lj <- c()
+for(j in 2:I){
+  diag = I-j
+  occurances <- as.data.frame(t(as.matrix(table(flipped[row(flipped) == (col(flipped)-diag)]))))
+  Sj <- c(Sj, occurances$S)
+  Lj <- c(Lj, occurances$L)
+}
+
+hyptestData1 <- data.frame(Sj, Lj) %>%  
+  rowwise() %>% 
+  mutate(Zj = min(Sj, Lj), n = Sj + Lj) %>% 
+  mutate(m = floor((n-1)/2)) %>% 
+  mutate(EZj = n/2 - choose(n-1,m) * n / (2^n)) %>% 
+  mutate(VarZj = n*(n-1)/4 - choose(n-1,m)*n*(n-1)/(2^n) + EZj - EZj^2)
+
+#We do NOT reject null hypothesis of no calender year effects
+confidenceInt1 <- sum(hyptestData$EZj) + c(-1,1)* 2*sqrt(sum(hyptestData$VarZj))
+teststatistic1 <- sum(hyptestData$Zj)
+
+
+
+#Branch 2
+devFactor2 <- devFactorTriangle(ct2)
+
+devFactor2SorL <- devFactor2 %>% mutate_all(SorL) 
+
+#notice this is not the same I as in function above since we sliced, that is this I is one smaller
+I = nrow(devFactor2)
+flipped <- devFactor2SorL[,I:1]
+
+Sj <- c()
+Lj <- c()
+for(j in 2:I){
+  diag = I-j
+  occurances <- as.data.frame(t(as.matrix(table(flipped[row(flipped) == (col(flipped)-diag)]))))
+  Sj <- c(Sj, occurances$S)
+  Lj <- c(Lj, occurances$L)
+}
+
+hyptestData2 <- data.frame(Sj, Lj) %>%  
+  rowwise() %>% 
+  mutate(Zj = min(Sj, Lj), n = Sj + Lj) %>% 
+  mutate(m = floor((n-1)/2)) %>% 
+  mutate(EZj = n/2 - choose(n-1,m) * n / (2^n)) %>% 
+  mutate(VarZj = n*(n-1)/4 - choose(n-1,m)*n*(n-1)/(2^n) + EZj - EZj^2)
+
+
+#We reject null hypothesis of no calender year effects
+confidenceInt2 <- sum(hyptestData$EZj) + c(-1,1)* 2*sqrt(sum(hyptestData$VarZj))
+teststatistic2 <- sum(hyptestData2$Zj)
+```
+
+
+```{r echo = FALSE, warning = FALSE}
 #Branch 1
 
 n <- nrow(ct1)
@@ -370,10 +443,8 @@ for(k in 1:(n-1)){
   
 }
 
-fList1
 
 #Branch 2
-
 n <- nrow(ct2)
 
 fList2 <- list()
