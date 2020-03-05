@@ -316,7 +316,7 @@ plot_residual_for_CL_f_k2 <- function(k, ct, product){
 
 We continue by investigating the third chain ladder assumption. According to Mack's article it is suggested to plot three different plots of residuals. First we plot $C_{i,k+1} - C_{i,k}f_{k0}$ against $C_{i,k}$, where $f_{k0} = \sum_{i=1}^{I-k} C_{i,k} C_{i,k+1} / \sum_{i=1}^{I-k} C_{i,k}^2$. 
 
-```{r echo = FALSE, warning = FALSE}
+```{r echo = FALSE, warning = FALSE, fig.height=2.5}
 par(mfrow = c(1, 2))
 plot_residual_for_CL_f_k0(k=1, ct1, 1)
 plot_residual_for_CL_f_k0(k=1, ct2, 2)
@@ -324,7 +324,7 @@ plot_residual_for_CL_f_k0(k=1, ct2, 2)
 
 Then we plot $(C_{i,k+1} - C_{i,k}f_{k1}) / \sqrt{C_{i,k}}$ against $C_{i,k}$, where $f_{k1} = \sum_{i=1}^{I-k} C_{i,k+1} / \sum_{i=1}^{I-k} C_{i,k}$. 
 
-```{r echo = FALSE, warning = FALSE}
+```{r echo = FALSE, warning = FALSE, fig.height=2.5}
 par(mfrow = c(1, 2))
 plot_residual_for_CL_f_k1(k=1, ct1, 1)
 plot_residual_for_CL_f_k1(k=1, ct2, 2)
@@ -332,15 +332,29 @@ plot_residual_for_CL_f_k1(k=1, ct2, 2)
 
 Lastly, we plot $(C_{i,k+1} - C_{i,k}f_{k2}) / C_{i,k}$ against $C_{i,k}$, where $f_{k2} = \frac{1}{I-k}\sum_{i=1}^{I-k} ( C_{i,k+1} / C_{i,k})$. 
 
-```{r echo = FALSE, warning = FALSE}
+```{r echo = FALSE, warning = FALSE, fig.height=2.5}
 par(mfrow = c(1, 2))
 plot_residual_for_CL_f_k2(k=1, ct1, 1)
 plot_residual_for_CL_f_k2(k=1, ct2, 2)
 ```
 
-Mack suggest that all this should be done for every developement year with at least $6$ data points, i.e for $k \leq I - 6$, however we chose do only include plots for $k=1$ since we could not see any systematic rasiduals or non-random pattern for any developement years. We can therefore conclude that the third chain ladder assumption is satisfied.
+Mack suggest that all this should be done for every developement year with at least $6$ data points, i.e for $k \leq I - 6$, however we chose do only include plots for $k=1$ since we could not see any systematic rasiduals or non-random pattern for any developement years. We can therefore conclude that the third chain-ladder assumption is satisfied.
 
-Lastly we want to examine whether or not we have any calender year effects. An example of a scenario where the assumption of independent years might be violated is if there is an overhaul of the way claims are handled which comes into effect during a specific year.
+Lastly we want to examine whether or not we have any calender year effects, the second chain-ladder assumption. To do this we follow the procedure explained in Appendix H in Mack's article. We begin by creating a triangle for the developement factors which we can see in Table 6 for branch 1 and in Table 9 for branch 2. We continue by computing the column means in this triangle. Now, if the developement factor for a cell is
+
+* equal to the mean, we assign "-" to this cell,
+* smaller than the mean, we assign "S" to this cell,
+* larger than the mean, we assign "L" to this cell. 
+
+The result of this is shown in Table 7 and Table 10 respectively for branch 1 and 2. Following the article, we now want to compute the number of "S" and "L" for each diagonal $A_j$ for $2\leq j \leq 9$. We denote the number of "S" in a diagonal by $S_j$ and the number of "L" by $L_j$. Furthermore, we compute 
+
+* $Z_j = \min (S_j, L_j)$,
+* $n = S_j + L_j$,
+* $m = [(n-1)/2]$, which denotes the largest integer $\leq (n-1)/2$,
+* $E[Z_j] = \frac{n}{2} - \binom{n-1}{m} \frac{n}{2^n}$,
+* $Var(Z_j) = \frac{n(n-1)}{4} - \binom{n-1}{m} \frac{n(n-1)}{2^n} + E[Z_j] - E[Z_j]^2$.
+
+The result of this computation can be seen in Table 8 and Table 11 respectively for branch 1 and 2. We will now perform a test which test the null-hypothesis of no calendar year effects. We use the test statistic $Z = \sum_j Z_j$, and if $Z$ is not in the following $95\%$ confidence interval, $(E[Z]-2 \sqrt{Var(Z)}, E[Z]+2 \sqrt{Var(Z)})$, we can reject the null-hypothesis of no calendar year effects. Furtermore, we have that $E[Z] = \sum_j E[Z_j]$ and $Var(Z) = \sum_j Var(Z_j)$. 
 
 ```{r echo = FALSE, warning = FALSE}
 devFactorTriangle <- function(ct){
@@ -379,8 +393,8 @@ hyptestData1 <- data.frame(Sj, Lj) %>%
   mutate(VarZj = n*(n-1)/4 - choose(n-1,m)*n*(n-1)/(2^n) + EZj - EZj^2)
 
 #We do NOT reject null hypothesis of no calender year effects
-confidenceInt1 <- sum(hyptestData$EZj) + c(-1,1)* 2*sqrt(sum(hyptestData$VarZj))
-teststatistic1 <- sum(hyptestData$Zj)
+confidenceInt1 <- sum(hyptestData1$EZj) + c(-1,1)* 2*sqrt(sum(hyptestData1$VarZj))
+teststatistic1 <- sum(hyptestData1$Zj)
 
 
 
@@ -411,12 +425,53 @@ hyptestData2 <- data.frame(Sj, Lj) %>%
 
 
 #We reject null hypothesis of no calender year effects
-confidenceInt2 <- sum(hyptestData$EZj) + c(-1,1)* 2*sqrt(sum(hyptestData$VarZj))
+confidenceInt2 <- sum(hyptestData2$EZj) + c(-1,1)* 2*sqrt(sum(hyptestData2$VarZj))
 teststatistic2 <- sum(hyptestData2$Zj)
 ```
 
 
+For branch 1 we got $Z=$ `r teststatistic1` which is inside the corresponding confidence interval (`r confidenceInt1[1]`, `r confidenceInt1[2]`). However, for branch 2 we get $Z=$ `r teststatistic2` which is slighly outside the corresponding confidence interval (`r confidenceInt2[1]`, `r confidenceInt2[2]`) and thus we can reject the null-hypothesis of no calendar year effects for branch 2. The second chain-ladder assumption can therefore be questioned for branch 2. 
+
+
 ```{r echo = FALSE, warning = FALSE}
+data.frame(rownames(devFactor1)) %>% 
+  setNames(c(" ")) %>%  
+  cbind(devFactor1) %>% 
+  kable(caption = "Developement Factor Triangle for Branch 1") %>% 
+  kable_styling(latex_options = "HOLD_position") 
+
+data.frame(rownames(devFactor1SorL)) %>% 
+  setNames(c(" ")) %>%  
+  cbind(devFactor1SorL) %>% 
+  kable(caption = "Developement Factors as S or L if smaller or larger than column mean for Branch 1") %>% 
+  kable_styling(latex_options = "HOLD_position") 
+
+hyptestData1 %>% 
+  kable(caption = "Some results for Branch 1") %>% 
+  kable_styling(latex_options = "HOLD_position") 
+
+data.frame(rownames(devFactor2)) %>% 
+  setNames(c(" ")) %>%  
+  cbind(devFactor2) %>% 
+  kable(caption = "Developement Factor Triangle for Branch 2") %>% 
+  kable_styling(latex_options = "HOLD_position") 
+
+data.frame(rownames(devFactor2SorL)) %>% 
+  setNames(c(" ")) %>%  
+  cbind(devFactor2SorL) %>% 
+  kable(caption = "Developement Factors as S or L if smaller or larger than column mean for Branch 2") %>% 
+  kable_styling(latex_options = "HOLD_position") 
+
+hyptestData2 %>% 
+  kable(caption = "Some results for Branch 2") %>% 
+  kable_styling(latex_options = "HOLD_position") 
+```
+
+
+
+
+
+```{r echo = FALSE, warning = FALSE, include = FALSE}
 #Branch 1
 
 n <- nrow(ct1)
@@ -477,7 +532,7 @@ fList2
 
 ```
 
-From the previous figures it looks as if we might have some annual dependencies, they are however not significant enough to make us deviate from the use of Mack's non-parametric CL.
+
 
 #Exercise 3
 In this exercise we wish to examine the variance parameter for the last development year (i.e. development year 10). We can do this by implementing the formulas presented in Mack's paper. First we have that
@@ -793,7 +848,7 @@ cbind(rep(1,9),c(0:8),uc1) %>%
 
 The main thing to take away from this is that the initial predictions seem to be, in persepctive, quite good predictors of the ultimate claim amounts.
 
-#Exercise 5
+<!-- #Exercise 5 -->
 
 ```{r echo = FALSE, warning = FALSE}
 
