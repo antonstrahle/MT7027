@@ -1033,7 +1033,7 @@ grid.arrange(noSL2, SL2)
 
 ```
 
-Like for the previous SL-covers we note that the distribution of the total annual cost without the purchase of the cover lacks any extreme outliers and as a result the overall cost for the SL-insurer and as a consequence the price will be lower.
+Like for the previous SL-covers we note from Figure 29 that the distribution of the total annual cost without the purchase of the cover lacks any extreme outliers and as a result the overall cost for the SL-insurer and as a consequence the price will be lower.
 
 The cost of this cover, based on simulated data, is `r prices3` which is once again lower than than the previously examined covers, this is because we have aggregated on yet another level which has further reduced the risk.
 
@@ -1044,11 +1044,11 @@ samples4$Total <- samples4$Total + prices3
 samples4 %>% 
   ggplot(aes(x = Total)) +
   geom_histogram(bins = 30) +
-  ggtitle("Total costs across both branches with joint SL-cover")
+  ggtitle("Figure 31: Total costs across both branches with joint SL-cover")
 
 ```
 
-We see from the two histograms that the total SL-cover implies a higher expected cost but also limits the total annual cost to $M =$  `r mVals3`. As such a more risk averse insurance provider might opt for the SL-cover to completly exclude the possiblity of large deviations in the annual costs whilst a more risk-taking insurance provide might avoid the SL-cover to reduce the expected annual cost.
+We see from Figure 31 that the total SL-cover implies a higher expected cost but also limits the total annual cost to $M =$  `r mVals3`. As such a more risk averse insurance provider might opt for the SL-cover to completly exclude the possiblity of large deviations in the annual costs whilst a more risk-taking insurance provide might avoid the SL-cover to reduce the expected annual cost.
 
 #Appendix 
 
