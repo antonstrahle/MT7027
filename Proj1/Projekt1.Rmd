@@ -6,7 +6,8 @@ output: pdf_document
 
 #Introduction
 
-In this project we are dealing with data concerning two different insurance branches collected over 10 years. We do not know anything about the sizes of the two insurance portfolios except the fact that their size has not changed over the decade which the data spans. Furthermore, the insurance products are of the non-life type and are paid out in lump payments. It is important to mention that we use Jan Alexanderssons data in this project.
+In this project we are dealing with data concerning two different insurance branches collected over 10 years. We do not know anything about the sizes of the two insurance portfolios except the fact that their size has not changed over the decade which the data spans. Furthermore, the insurance products are of the non-life type and are paid out in lump payments. It is important to mention that we use Jan Alexanderssons data in this project. In this project we will fit a homogeneous Poisson distribution to each insurance product. We will analyze time-dependencies as well as dependencies between the two insurance products. Lastly we will look at how XL-covers change the distribution of the total claim cost and how to apply appropriate SL-covers.
+
 
 #Exercise 1
 
