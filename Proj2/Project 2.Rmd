@@ -103,7 +103,7 @@ fullct2 <- fillct(ct2)
 
 ```
 
-The purpose of this project is to examine how one can predict future expenses in order to be able to reserve against them. Specifically we wish to examine both the expected future payments as well as the variance within these payments. The data which we have been given is collected over several years and divided between two vastly different insurance products, henceforth refered to as product, or branch, 1 or 2. The final 10 years of the data can be aggregated in order to create the following two paid claims triangles. Lastly, since the claims triangle is limited to 10 development years the data has been truncated to accomodate this limit.
+The purpose of this project is to examine how one can predict future expenses in order to be able to reserve against them. Specifically we wish to examine both the expected future payments as well as the variance within these payments. The data which we have been given is collected over several years and divided between two vastly different insurance products, henceforth refered to as product, or branch, 1 or 2. The final 10 years of the data can be aggregated in order to create the following two paid claims triangles. Lastly, since the claims triangle is limited to 10 development years the data has been truncated to accomodate this limit. It is important to mention that we use Jan Alexanderssons data in this project.
 
 `r kable(ct1, caption = "Paid claims triangle for product 1", row.names = c(1:10)) %>% kable_styling(latex_options =c("hold_position", "scale_down"))`
 
@@ -171,9 +171,13 @@ lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = funct
 
 plot(ct1$`8`, ct1$`9`)
 lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat1[8]}), col = "blue")
-
+title("Figure 1: Linear approximation between C_i,k and C_i,k+1 for product 1", line = -2, outer = TRUE, cex.main = 2)
 #Skoja dem blev faktiskt inte så fula men fixa axlarna
+```
 
+\medskip
+
+```{r echo = FALSE, warning = FALSE}
 par(mfrow=c(4,2), cex=0.35) 
 
 plot(ct2$`1`, ct2$`2`)
@@ -199,10 +203,10 @@ lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = funct
 
 plot(ct2$`8`, ct2$`9`)
 lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = function(x){ x*fHat2[8]}), col = "blue")
-
+title("Figure 2: Linear approximation between C_i,k and C_i,k+1 for product 2", line = -2, outer = TRUE, cex.main = 2)
 ```
 
-We note that the linear approximation seems to hold. 
+We note from Figure 1 and 2 that the linear approximation seems to hold. 
 
 ```{r echo = FALSE, warning = FALSE, include = FALSE}
 
@@ -314,31 +318,40 @@ plot_residual_for_CL_f_k2 <- function(k, ct, product){
 ```
 
 
-We continue by investigating the third chain ladder assumption. According to Mack's article it is suggested to plot three different plots of residuals. First we plot $C_{i,k+1} - C_{i,k}f_{k0}$ against $C_{i,k}$, where $f_{k0} = \sum_{i=1}^{I-k} C_{i,k} C_{i,k+1} / \sum_{i=1}^{I-k} C_{i,k}^2$. 
+We continue by investigating the third chain ladder assumption. According to Mack's article it is suggested to plot three different plots of residuals. First we plot expression 1: $C_{i,k+1} - C_{i,k}f_{k0}$ against $C_{i,k}$, where $f_{k0} = \sum_{i=1}^{I-k} C_{i,k} C_{i,k+1} / \sum_{i=1}^{I-k} C_{i,k}^2$. 
+
+\bigskip
 
 ```{r echo = FALSE, warning = FALSE, fig.height=2.5}
 par(mfrow = c(1, 2))
 plot_residual_for_CL_f_k0(k=1, ct1, 1)
 plot_residual_for_CL_f_k0(k=1, ct2, 2)
+title("Figure 3: Expression 1 against C_i,k for product 1 and 2", line = -1, outer = TRUE, cex.main = 1)
 ```
 
-Then we plot $(C_{i,k+1} - C_{i,k}f_{k1}) / \sqrt{C_{i,k}}$ against $C_{i,k}$, where $f_{k1} = \sum_{i=1}^{I-k} C_{i,k+1} / \sum_{i=1}^{I-k} C_{i,k}$. 
+Then we plot expression 2: $(C_{i,k+1} - C_{i,k}f_{k1}) / \sqrt{C_{i,k}}$ against $C_{i,k}$, where $f_{k1} = \sum_{i=1}^{I-k} C_{i,k+1} / \sum_{i=1}^{I-k} C_{i,k}$. 
+
+\bigskip
 
 ```{r echo = FALSE, warning = FALSE, fig.height=2.5}
 par(mfrow = c(1, 2))
 plot_residual_for_CL_f_k1(k=1, ct1, 1)
 plot_residual_for_CL_f_k1(k=1, ct2, 2)
+title("Figure 4: Expression 2 against C_i,k for product 1 and 2", line = -1, outer = TRUE, cex.main = 1)
 ```
 
-Lastly, we plot $(C_{i,k+1} - C_{i,k}f_{k2}) / C_{i,k}$ against $C_{i,k}$, where $f_{k2} = \frac{1}{I-k}\sum_{i=1}^{I-k} ( C_{i,k+1} / C_{i,k})$. 
+Lastly, we plot expression 3: $(C_{i,k+1} - C_{i,k}f_{k2}) / C_{i,k}$ against $C_{i,k}$, where $f_{k2} = \frac{1}{I-k}\sum_{i=1}^{I-k} ( C_{i,k+1} / C_{i,k})$. 
+
+\bigskip
 
 ```{r echo = FALSE, warning = FALSE, fig.height=2.5}
 par(mfrow = c(1, 2))
 plot_residual_for_CL_f_k2(k=1, ct1, 1)
 plot_residual_for_CL_f_k2(k=1, ct2, 2)
+title("Figure 5: Expression 3 against C_i,k for product 1 and 2", line = -1, outer = TRUE, cex.main = 1)
 ```
 
-Mack suggest that all this should be done for every developement year with at least $6$ data points, i.e for $k \leq I - 6$, however we chose do only include plots for $k=1$ since we could not see any systematic rasiduals or non-random pattern for any developement years. We can therefore conclude that the third chain-ladder assumption is satisfied.
+Mack suggest that all this should be done for every developement year with at least $6$ data points, i.e for $k \leq I - 6$, however we chose do only include plots for $k=1$ since we could not see any systematic residuals or non-random pattern for any developement years. We can therefore conclude that the third chain-ladder assumption is satisfied.
 
 Lastly we want to examine whether or not we have any calender year effects, the second chain-ladder assumption. To do this we follow the procedure explained in Appendix H in Mack's article. We begin by creating a triangle for the developement factors which we can see in Table 6 for branch 1 and in Table 9 for branch 2. We continue by computing the column means in this triangle. Now, if the developement factor for a cell is
 
