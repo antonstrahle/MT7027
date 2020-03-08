@@ -91,7 +91,7 @@ data %>%
 
 We note from Figure 2 and 3 that there does not seem to be any major difference in the number of claims between the years. We can therefore model the data separately for low intensity periods and high intensity periods for each branch. 
 
-We now wish to fit homogeneous Poisson distributions $N_{ij}$ (where $i$ represents the insurance type and $j$ represents the season) to the months of each season and each insurance product.
+We now wish to fit homogeneous Poisson distributions $N_{ij}$ (where $i$ represents the insurance type and $j$ represents the season) to the periods and each insurance product.
 
 $$
 N_{ij} \sim \text{Po}(\lambda_{ij})
@@ -105,7 +105,7 @@ data <- data %>% mutate(Season = ifelse(Month %in% 5:8, 2, 1))
 aggregatedData <- data %>% group_by(ClaimType, ClaimDay, Month, Year, Season) %>% 
   summarise(NumberOfClaims=n(), AggregatedCost = sum(ClaimCost))
 
-#Distribution of NumberOfClaims and fitted poisson as points
+#Distribution of NumberOfClaims and fitted Poisson as points
 estimatedLambda <- (aggregatedData %>% 
   group_by(ClaimType, Season) %>% 
   summarize(lambda = mean(NumberOfClaims)))$lambda
@@ -147,7 +147,7 @@ estimatedLambda <- (aggregatedData %>%
 #   ylab("Density")
 ```
 
-The Poisson variables which have been fit for the different seasons and insurance branches and have had their parameter $\lambda_{ij}$ estimated through maximum-likelihood methods using the data from the 10 previous years. However, we note from the plots below that the poisson distribution does not fit the data very well as can be seen in the figures in the Appendix. We seem to have overdispersion for some periods and branches, meaning that the variance is not truly equal to the expectation which is the case for a Poisson variable. For others combinations of seasons and branches the data does however seem to indicate that we have underdispersion, meaning that the variance is lower than the expectation. Therefore we also fit negative binomial distributions to $N_{ij}$ as this distribution does not have the property of equal expectation and variance as the poisson distribution does. We can clearly see that the negative binomial distribution models our data better than the poisson distribution. We can also see this by examing QQ-plots between the empirical distribution of our data compared to the poisson distribution and negative binomial distribution. 
+The Poisson variables which have been fit for the different seasons and insurance branches and have had their parameter $\lambda_{ij}$ estimated through maximum-likelihood methods using the data from the 10 previous years. However, we note from the plots below that the Poisson distribution does not fit the data very well as can be seen in the figures in the Appendix. We seem to have overdispersion for some periods and branches, meaning that the variance is not truly equal to the expectation which is the case for a Poisson variable. For others combinations of seasons and branches the data does however seem to indicate that we have underdispersion, meaning that the variance is lower than the expectation. Therefore we also fit Negative Binomial distributions to $N_{ij}$ as this distribution does not have the property of equal expectation and variance as the Poisson distribution does. We can clearly see from the figures in the Appendix that the Negative Binomial distribution models our data better than the Poisson distribution. We can also see this by examing QQ-plots between the empirical distribution of our data compared to the Poisson distribution and Negative Binomial distribution. 
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -158,7 +158,7 @@ library(fitdistrplus)
 
 #Vi borde undersöka histogram, fördelningsfunktion och qqplot för antal skador.
 #Detta gör vi för varje säsong samt produkt
-#Jämför med poisson samt negativ binomial (blandad poisson)
+#Jämför med Poisson samt negativ binomial (blandad Poisson)
 
 #Plots for N_11
 # N11 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
@@ -302,7 +302,7 @@ N22 <- data %>% group_by(ClaimType, ClaimDay, Year, Month, Season) %>%
 \newpage
 #Exercise 2
 
-In this exercise we analyze the claim costs over time for each of the two insurance branches. We are looking for possible patterns in the claim costs over time by analyzing the distribution of the claim costs. In the following figures we can observe the average logarithm of the claim cost for each moth and insuranse branch. A log-transform is used to make the figure more interpretable. 
+In this exercise we analyze the claim costs over time for each of the two insurance branches. We are looking for possible patterns in the claim costs over time by analyzing the distribution of the claim costs. In the following figures we can observe the average logarithm of the claim cost for each moth and insuranse branch. The log-transform is used to make the figure more interpretable. 
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
 #Monthly boxplot
@@ -354,7 +354,6 @@ data %>%
 ```
 
 We note from Figure 5 that the average claim sizes each day seem to be time independet. An interesting factor is however that all extremely deviating claim costs seem to occur during the summer (i.e period 2), which may be a result of a lower number of claims during this period. In conclussion it seems as if the claim costs are independent of time. 
-
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
 
@@ -444,7 +443,7 @@ qqcomp(list(fitW, fitG , fitLN, fitP, fitB), legendtext = plot.legend, fitcol = 
 We can see from the histograms in Figure 7 and 10 that a fitted Burr distribution seems to model the data well, however we can see from the QQ-plots in Figure 9 and 12 that we run into problems in the tails. 
 
 Therefore we tried to fit different distributions for the tail, compared to the rest of the data. That is, we fit a distribution to claim cost below a chosen number and another distribution for cost above that number. However, all our attempts led to a bad fit. 
-Since we could not achive a good fit using common distributions we fit the data using splines, using the R package `logspline`, which gives a very good fit, however one has to be careful of overfitting when using splines. 
+Since we could not achive a good fit using common distributions we fit the data using splines, using the R package `logspline`, which gives a very good fit, however one has to be careful of overfitting when using splines.
 
 ```{r echo = FALSE ,warning = FALSE, message = FALSE}
 library(logspline)
@@ -503,12 +502,9 @@ abline(0, 1)
 #   facet_wrap(~ c(Season))
 ```
 
-
-
-
 #Exercise 3 
 
-In order to accuratetly assess the total claim cost for the entire company it of importance to look at whether we have dependence between the two insurance branches or not. We look at the total number of claims for each branch on a daily basis and plot the number of claims against each other, for each season.
+In order to accuratetly assess the total claim cost for the entire company it is of importance to examine whether or not we have dependence between the two insurance branches. We look at the total number of claims for each branch on a daily basis and plot the number of claims against each other, for each season.
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -582,7 +578,7 @@ From Table 1 we can see that there seems to exist som dependency between the bra
 
 #Exercise 4
 
-As we mentioned previously the number of claims for the two branches are not independent, meaning that the have to be sampled from a bivariate distribution rather than two univariate distributions. This can be done by either deriving the bivariate distribution analytically and then sampling from it or by generating a bivariate sample using bootstrap or the Gauss-copula method. 
+As we mentioned previously the number of claims for the two branches are not independent, meaning that the have to be sampled from a bivariate distribution rather than two univariate distributions. This can be done by either deriving the bivariate distribution analytically and then sampling from it or by generating a bivariate sample by bootstrapping or using Gauss-copula method. 
 
 For the bootstrap method we begin by sampling the number of claims for each month of the following year from the data of the correct season. We previosuly mentionded that the claim costs are time independent for both branches as well as that they are independent between the two insurance branches. Due to this we can, as previosuly mentioned, model claims and the individual claim costs independently. An advantage of using bootstrap is that we do not need to know the distributions for the number of claims or the claim costs, which we do not know for the claim cost since we could not find a good fit for any of the distributions we tried. 
 
@@ -602,7 +598,7 @@ We could also have used the Gauss-copula-method to simulate claim costs, however
 
 However, since our results in the following exercises did not differ much, using bootstrap compared to the Gauss-copula method, we chose to only include results from the bootstrap method.
 
-We bootstrap $1000$ years using the data for our $10$ year period and we can see the distributions of the total annual costs in Figure 18 below. We can see that branch $2$ has both a higher expectation and variance compared to branch $1$.
+We bootstrap $1000$ years of data, using the data for our $10$ year period, and we can see the distributions of the total annual costs in Figure 18 below. We can see that branch $2$ has both a higher expectation and variance compared to branch $1$.
 
 ```{r echo = FALSE, message = FALSE, cache = TRUE, warning = FALSE}
 
@@ -803,7 +799,7 @@ simPrice <- function(n, mValsCop){
 
 `r kable(mVals, caption = "Cut-offs")`
 
-We note that these cutoffs are vastly different for the two branches which of course is to be expected since they likely insure against different things. Graphically the distribution of the individual claim costs looks as follows when, and when not, taking the XL-covers into account.
+We note that these cutoffs are vastly different for the two branches which of course is to be expected since they insure against different things. Graphically the distribution of the individual claim costs looks as follows when, and when not, taking the XL-covers into account.
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -840,7 +836,7 @@ kable(prices, caption = "Prices for the two XL-covers")
 
 ```
 
-As previosuly mentioned both covers turn out to be fairly pricy, specifically the cover for branch 2. We now want to examine how the purchase of these XL-covers would impact our total losses for the forthcoming year. We saw a simulated distribution of the losses for the two branches without the XL-covers in Figure 18. If we implement the covers we get the following simulated distributions.
+As previosuly mentioned both covers turn out to be fairly pricy, specifically the cover for branch 2. We now want to examine how the purchase of these XL-covers would impact our total costs for the forthcoming year. We saw a simulated distribution of the losses for the two branches without the XL-covers in Figure 18. If we implement the covers we get the following simulated distributions.
 
 ```{r echo = FALSE, cache = TRUE, warning = FALSE, message = FALSE}
 
@@ -951,7 +947,7 @@ The prices of the two SL-covers are as follows
 
 `r kable(prices2, caption = "Prices for the two SL-covers")` 
 
-Here we note from Table 5 that the prices are actually extremely low, for both insurance branches the annual cost of the SL-cover is but a drop in the ocean compared to the overall annual claim costs. The price for the SL-cover for branch 2 is a bit more pricy which is due to the fact of the higher variance of the annual claim costs distribution as was previously noted. 
+Here we note from Table 5 that the prices are actually extremely low, for both insurance branches the annual cost of the SL-cover is but a drop in the ocean compared to the overall annual claim costs. The price for the SL-cover for branch 2 is a bit more pricy which is due to the fact of the higher variance of the annual claim costs as was previously noted. 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE}
 
@@ -1049,7 +1045,7 @@ samples4 %>%
 
 ```
 
-We see from Figure 31 that the total SL-cover implies a higher expected cost but also limits the total annual cost to $M =$  `r mVals3`. As such a more risk averse insurance provider might opt for the SL-cover to completly exclude the possiblity of large deviations in the annual costs whilst a more risk-taking insurance provide might avoid the SL-cover to reduce the expected annual cost.
+We see from Figure 31 that the total SL-cover implies a higher expected cost but also limits the total annual cost to $M =$  `r mVals3`. As such, a more risk averse insurance provider might opt for the SL-cover to completly exclude the possiblity of large deviations in the annual costs whilst a more risk-taking insurance provide might avoid the SL-cover to reduce the expected annual cost.
 
 #Appendix 
 
