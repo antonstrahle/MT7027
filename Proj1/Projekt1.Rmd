@@ -1044,7 +1044,7 @@ samples4 %>%
 
 ```
 
-We see from Figure 31 that the total SL-cover implies a higher expected cost but also limits the total annual cost to $M =$  `r mVals3`. As such, a more risk averse insurance provider might opt for the SL-cover to completely exclude the possibility of large deviations in the annual costs whilst a more risk-taking insurance provide might avoid the SL-cover to reduce the expected annual cost.
+We see from Figure 31 that the total SL-cover implies a higher expected cost but also limits the total annual cost to $M =$  `r mVals3`. As such, a more risk averse insurance provider might opt for the SL-cover to completely exclude the  of large deviations in the annual costs whilst a more risk-taking insurance provide might avoid the SL-cover to reduce the expected annual cost.
 
 #Appendix 
 

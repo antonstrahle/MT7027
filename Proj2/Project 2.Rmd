@@ -683,7 +683,7 @@ We see in Table 12 that there is vastly more risk ($\widehat{s.e}(R)$) in Produc
 
 #Exercise 4
 
-In this exercise we aim to predict the ultimate claim amounts $R_1$ and $R_2$ for insurance product 1 and 2 respectively. We then want to update our predictions assuming that we access to more data. In this case we use the first 10 years of data which have been fully developed whilst assuming that we only have access to a fraction of those years. Initially we assume to know the outcomes of the first 5 years which can be presented in the following claims triangles.
+In this exercise we aim to predict the ultimate claim amounts $R_1$ and $R_2$ for insurance product 1 and 2 respectively. We then want to update our predictions assuming that we access to more data. In this case we use the first 10 years of data which have been fully developed whilst assuming that we only have access to a fraction of those years. Initially we assume to know the outcomes of the first 5 years which can be presented in the following paid claims triangles (Table 13 and 14).
 
 ```{r echo = FALSE, warning = FALSE}
 
@@ -723,7 +723,7 @@ kable(disp2, caption = "Paid claims triangle for product 2", row.names = c(1:10)
 
 ```
 
-We then add additional years of data and recalculate the predictions which gives us the following table.  
+Tables 13 and 14 can then be filled out using Mack's non-parametric CL approach, giving us the ultimate claim amounts for the two branches. What we then want to do is to iteratively assume additional years of data as known. In the first step this corresponds to assuming that the data present in the subantidiagonal is known and so on. When assuming this new data as know we also take it into account when estimating the development factors $f_k$ which we then use to fill out the claims triangle (trapezoid). From this filled out claims triangle we can then extract the predicted ultimate claims amount for each iteration. These values are presented in Table 15 below. 
 
 ```{r echo = FALSE, warning = FALSE}
 
@@ -855,21 +855,9 @@ cbind(rep(1,9),c(0:8),uc1) %>%
   data.frame() %>% 
   setNames(c("Branch", "Year", "Reserve")) %>%
   spread(value = Reserve, key = Year) %>% 
-  kable(caption = "Development of ultimate claims predictions given additional years of data") %>%
+  kable(caption = "Development of ultimate claim predictions given additional years of data") %>%
   kable_styling(latex_options=c("hold_position", "scale_down"))
 
 ```
 
-\newpage
-
-The main thing to take away from this is that the initial predictions seem to be, in perspective, quite good predictors of the ultimate claim amounts.
-
-<!-- #Exercise 5 -->
-
-```{r echo = FALSE, warning = FALSE}
-
-
-
-```
-
-
+The main thing to take away from this is that the initial predictions seem to be, in retrospect, quite good predictors of the ultimate claim amounts. 
