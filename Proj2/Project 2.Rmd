@@ -1,13 +1,13 @@
 ---
 title: "Project 2"
-author: "Anton Stråhle"
+author: "Jan Alexandersson, Max Sjödin & Anton Stråhle"
 date: "15 februari 2020"
 output: pdf_document
 ---
 
 #Introduction
 
-The purpose of this project is to examine how one can predict future expenses in order to be able to reserve against them. Specifically we wish to examine both the expected future payments as well as the variance within these payments. The data which we have been given is collected over several years and divided between two vastly different insurance products, henceforth refered to as product, or branch, 1 or 2. It is important to mention that we use Jan Alexanderssons data in this project. 
+The purpose of this project is to examine how one can predict future expenses in order to be able to reserve against them. Specifically we wish to examine both the expected future payments as well as the variance within these payments. The data which we have been given is collected over several years and divided between two vastly different insurance products, henceforth refereed to as product, or branch, 1 or 2. It is important to mention that we use Jan Alexanderssons data in this project. 
 
 #Exercise 1
 
@@ -107,13 +107,13 @@ fullct2 <- fillct(ct2)
 
 ```
 
-Since the claims triangle is limited to 10 development years the data has been truncated to accomodate this limit. The final 10 years of the data can be aggregated in order to create the following two paid claims triangles. 
+Since the claims triangle is limited to 10 development years the data has been truncated to accommodate this limit. The final 10 years of the data can be aggregated in order to create the following two paid claims triangles. 
 
 `r kable(ct1, caption = "Paid claims triangle for product 1", row.names = c(1:10)) %>% kable_styling(latex_options =c("hold_position", "scale_down"))`
 
 `r kable(ct2, caption = "Paid claims triangle of product 2", row.names = c(1:10)) %>% kable_styling(latex_options =c("hold_position", "scale_down"))`
 
-Using Mack's non-parametric CL approach we can predict the total cost of future payments per year as follows.
+Using Mack's non-parametric CL approach we can predict the total cost of future payments per year as follows in Table 3 and Table 4.
 
 `r kable(fullct1, caption = "Full claims triangle of type 1 predicted with CL", row.names = c(1:10)) %>% kable_styling(latex_options =c("hold_position", "scale_down"))`
 
@@ -129,8 +129,7 @@ reserve1 <- as.matrix(fullct1)[, 10] - diag(as.matrix(fullct1)[10:1,])[10:1]
 
 reserve2 <- as.matrix(fullct2)[, 10] - diag(as.matrix(fullct2)[10:1,])[10:1]
 
-kable(rbind(c("Product 1" , sum(reserve1)), c("Product 2", sum(reserve2))), digits = 2, caption = "Total Chain Ladder Reserve") %>%  kable_styling(latex_options =c("hold_position"))
-
+kable(rbind(c("Product 1" , round(sum(reserve1))), c("Product 2", round(sum(reserve2)))), caption = "Total Chain Ladder Reserve") %>%  kable_styling(latex_options =c("hold_position"))
 ```
 
 
@@ -144,7 +143,7 @@ We now want to check whether or not Mack's underlying assumptions are met in our
   \item $Var(C_{i,k+1}|C_{i,1},...,C{i,k}) = \sigma_k^2C_{i,k}$
 \end{enumerate}
 
-We begin by examing whether or not the we have an approximate linear relationship between $C_{i,k}$ and $C_{i,k+1}$ for $i = 1,...,10$ for the two branches.
+We begin by examine whether or not the we have an approximate linear relationship between $C_{i,k}$ and $C_{i,k+1}$ for $i = 1,...,10$ for the two branches.
 
 ```{r echo = FALSE, warning = FALSE}
 
@@ -353,9 +352,9 @@ plot_residual_for_CL_f_k2(k=1, ct2, 2)
 title("Figure 5: Expression 3 against C_i,k for product 1 and 2", line = -1, outer = TRUE, cex.main = 1)
 ```
 
-Mack suggest that all this should be done for every developement year with at least $6$ data points, i.e for $k \leq I - 6$, however we chose do only include plots for $k=1$ since we could not see any systematic residuals or non-random pattern for any developement years. We can therefore conclude that the third chain-ladder assumption is satisfied.
+Mack suggest that all this should be done for every development year with at least $6$ data points, i.e for $k \leq I - 6$, however we chose do only include plots for $k=1$ since we could not see any systematic residuals or non-random pattern for any development years. We can therefore conclude that the third chain-ladder assumption is satisfied.
 
-Lastly we want to examine whether or not we have any calender year effects, the second chain-ladder assumption. To do this we follow the procedure explained in Appendix H in Mack's article. We begin by creating a triangle for the developement factors which we can see in Table 6 for branch 1 and in Table 9 for branch 2. We continue by computing the column means in this triangle. Now, if the developement factor for a cell is
+Lastly we want to examine whether or not we have any calender year effects, the second chain-ladder assumption. To do this we follow the procedure explained in Appendix H in Mack's article. We begin by creating a triangle for the development factors which we can see in Table 6 for branch 1 and in Table 9 for branch 2. We continue by computing the column means in this triangle. Now, if the development factor for a cell is
 
 * equal to the mean, we assign "-" to this cell,
 * smaller than the mean, we assign "S" to this cell,
@@ -369,7 +368,7 @@ The result of this is shown in Table 7 and Table 10 respectively for branch 1 an
 * $E[Z_j] = \frac{n}{2} - \binom{n-1}{m} \frac{n}{2^n}$,
 * $Var(Z_j) = \frac{n(n-1)}{4} - \binom{n-1}{m} \frac{n(n-1)}{2^n} + E[Z_j] - E[Z_j]^2$.
 
-The result of this computation can be seen in Table 8 and Table 11 respectively for branch 1 and 2. We will now perform a test which test the null-hypothesis of no calendar year effects. We use the test statistic $Z = \sum_j Z_j$, and if $Z$ is not in the following $95\%$ confidence interval, $(E[Z]-2 \sqrt{Var(Z)}, E[Z]+2 \sqrt{Var(Z)})$, we can reject the null-hypothesis of no calendar year effects. Furtermore, we have that $E[Z] = \sum_j E[Z_j]$ and $Var(Z) = \sum_j Var(Z_j)$. 
+The result of this computation can be seen in Table 8 and Table 11 respectively for branch 1 and 2. We will now perform a test which test the null-hypothesis of no calendar year effects. We use the test statistic $Z = \sum_j Z_j$, and if $Z$ is not in the following $95\%$ confidence interval, $(E[Z]-2 \sqrt{Var(Z)}, E[Z]+2 \sqrt{Var(Z)})$, we can reject the null-hypothesis of no calendar year effects. Furthermore, we have that $E[Z] = \sum_j E[Z_j]$ and $Var(Z) = \sum_j Var(Z_j)$. 
 
 ```{r echo = FALSE, warning = FALSE}
 devFactorTriangle <- function(ct){
@@ -445,7 +444,7 @@ teststatistic2 <- sum(hyptestData2$Zj)
 ```
 
 
-For branch 1 we got $Z=$ `r teststatistic1` which is inside the corresponding confidence interval (`r confidenceInt1[1]`, `r confidenceInt1[2]`). However, for branch 2 we get $Z=$ `r teststatistic2` which is slighly outside the corresponding confidence interval (`r confidenceInt2[1]`, `r confidenceInt2[2]`) and thus we can reject the null-hypothesis of no calendar year effects for branch 2. The second chain-ladder assumption can therefore be questioned for branch 2. 
+For branch 1 we got $Z=$ `r teststatistic1` which is inside the corresponding confidence interval (`r confidenceInt1[1]`, `r confidenceInt1[2]`). For branch 2 we got $Z=$ `r teststatistic2`  which is also inside the confidence interval (`r confidenceInt2[1]`, `r confidenceInt2[2]`) and thus we do not reject the null-hypothesis of no calendar year effects for branch 2.  We can thus go on with the chain-ladder method. 
 
 
 ```{r echo = FALSE, warning = FALSE}
@@ -565,7 +564,7 @@ $$
 and where we estimate $\sigma_k^2$ by
 
 $$
-\hat \sigma_k^2 = \frac{1}{I-k-1}\sum_{j=1}^{I-k}C_{j,k}\left(\frac{C_{j,k+1}}{C_{j,k}-\hat f_k}\right)^2
+\hat \sigma_k^2 = \frac{1}{I-k-1}\sum_{j=1}^{I-k}C_{j,k}\left(\frac{C_{j,k+1}}{C_{j,k}}-\hat f_k \right)^2
 $$
 and
 
@@ -672,19 +671,19 @@ riskCalculation <- function(ct, ctAlt){
   
 }
 
-risk1 <- unname(riskCalculation(ct1, ct1Alt))
+risk1 <- round(sqrt(unname(riskCalculation(ct1, ct1Alt))))
 
-risk2 <- unname(riskCalculation(ct2, ct2Alt))
+risk2 <- round(sqrt(unname(riskCalculation(ct2, ct2Alt))))
 
 kable(rbind(c("Product 1", risk1), c("Product 2", risk2)), caption = "Reserve Risk") %>%  kable_styling(latex_options =c("hold_position"))
 
 ```
 
-We see that there is vastly more risk in Product 2 than Product 1 which seems understandable if we note that there seems to be no new claims during the last six four development years, meaning that the risk only propogates in the initial 6 development years, at least according to our observed years. Another factor that leads to this difference is the fact that the ultimate claims reserve is greater for the first insurance product compared to the second.
+We see in Table 12 that there is vastly more risk ($\widehat{s.e}(R)$) in Product 2 than Product 1 which seems reasonable if we note that there seems to be no new claims during the last four development years, for branch 1, meaning that the risk only propagates in the initial six development years, at least according to our observed years. Another factor that leads to this difference is the fact that the ultimate claims reserve is greater for the first insurance product compared to the second.
 
 #Exercise 4
 
-In this exercise we aim to predict the ultimate claim amounts $R_1$ and $R_2$ for insurance product 1 and 2 respectiveley. We then want to update our predictions assuming that we access to more data. In this case we use the first 10 years of data which have been fully developed whilst assuming that we only have access to a fraction of those years. Initially we assume to know the outcomes of the first 5 years which can be presented in the following claims triangles.
+In this exercise we aim to predict the ultimate claim amounts $R_1$ and $R_2$ for insurance product 1 and 2 respectively. We then want to update our predictions assuming that we access to more data. In this case we use the first 10 years of data which have been fully developed whilst assuming that we only have access to a fraction of those years. Initially we assume to know the outcomes of the first 5 years which can be presented in the following claims triangles.
 
 ```{r echo = FALSE, warning = FALSE}
 
@@ -863,7 +862,7 @@ cbind(rep(1,9),c(0:8),uc1) %>%
 
 \newpage
 
-The main thing to take away from this is that the initial predictions seem to be, in persepctive, quite good predictors of the ultimate claim amounts.
+The main thing to take away from this is that the initial predictions seem to be, in perspective, quite good predictors of the ultimate claim amounts.
 
 <!-- #Exercise 5 -->
 
