@@ -5,6 +5,10 @@ date: "15 februari 2020"
 output: pdf_document
 ---
 
+#Introduction
+
+The purpose of this project is to examine how one can predict future expenses in order to be able to reserve against them. Specifically we wish to examine both the expected future payments as well as the variance within these payments. The data which we have been given is collected over several years and divided between two vastly different insurance products, henceforth refered to as product, or branch, 1 or 2. It is important to mention that we use Jan Alexanderssons data in this project. 
+
 #Exercise 1
 
 ```{r, echo = FALSE, warning = FALSE}
@@ -103,7 +107,7 @@ fullct2 <- fillct(ct2)
 
 ```
 
-The purpose of this project is to examine how one can predict future expenses in order to be able to reserve against them. Specifically we wish to examine both the expected future payments as well as the variance within these payments. The data which we have been given is collected over several years and divided between two vastly different insurance products, henceforth refered to as product, or branch, 1 or 2. The final 10 years of the data can be aggregated in order to create the following two paid claims triangles. Lastly, since the claims triangle is limited to 10 development years the data has been truncated to accomodate this limit. It is important to mention that we use Jan Alexanderssons data in this project.
+Since the claims triangle is limited to 10 development years the data has been truncated to accomodate this limit. The final 10 years of the data can be aggregated in order to create the following two paid claims triangles. 
 
 `r kable(ct1, caption = "Paid claims triangle for product 1", row.names = c(1:10)) %>% kable_styling(latex_options =c("hold_position", "scale_down"))`
 
@@ -117,7 +121,7 @@ Using Mack's non-parametric CL approach we can predict the total cost of future 
 
 \newpage
 
-Lastly we wish to predict the future payments for each of the claims years, i.e. those on the vertical axes, and then combine them into a the total chain ladder reserve.
+Lastly we wish to predict the future payments for each of the claims years, i.e. $R_{2,i},...,R_{10,i}$, and then combine them into a the total chain ladder reserves, i.e. $R_{i}$ for $i = 1,2$.
 
 ```{r echo = FALSE, warning = FALSE}
 
@@ -125,7 +129,7 @@ reserve1 <- as.matrix(fullct1)[, 10] - diag(as.matrix(fullct1)[10:1,])[10:1]
 
 reserve2 <- as.matrix(fullct2)[, 10] - diag(as.matrix(fullct2)[10:1,])[10:1]
 
-kable(rbind(c("Product 1" , sum(reserve1)), c("Product 2", sum(reserve2))), digits = 2, caption = "Chain Ladder Reserve") %>%  kable_styling(latex_options =c("hold_position"))
+kable(rbind(c("Product 1" , sum(reserve1)), c("Product 2", sum(reserve2))), digits = 2, caption = "Total Chain Ladder Reserve") %>%  kable_styling(latex_options =c("hold_position"))
 
 ```
 
@@ -140,7 +144,7 @@ We now want to check whether or not Mack's underlying assumptions are met in our
   \item $Var(C_{i,k+1}|C_{i,1},...,C{i,k}) = \sigma_k^2C_{i,k}$
 \end{enumerate}
 
-We begin by examing whether or not the we have an approximate linear relationship between $C_{i,k}$ and $C_{i,k+1}$ for $i = 1,...,10$.
+We begin by examing whether or not the we have an approximate linear relationship between $C_{i,k}$ and $C_{i,k+1}$ for $i = 1,...,10$ for the two branches.
 
 ```{r echo = FALSE, warning = FALSE}
 
@@ -177,6 +181,7 @@ title("Figure 1: Linear approximation between C_i,k and C_i,k+1 for product 1", 
 
 \medskip
 
+
 ```{r echo = FALSE, warning = FALSE}
 par(mfrow=c(4,2), cex=0.35) 
 
@@ -206,7 +211,7 @@ lines(seq(1e6,7e7, by = 10000), sapply(X = seq(1e6,7e7, by = 10000), FUN = funct
 title("Figure 2: Linear approximation between C_i,k and C_i,k+1 for product 2", line = -2, outer = TRUE, cex.main = 2)
 ```
 
-We note from Figure 1 and 2 that the linear approximation seems to hold. 
+We note from the previous figures that the assumption of linearity seem to hold for both insurance branches.
 
 ```{r echo = FALSE, warning = FALSE, include = FALSE}
 
@@ -252,9 +257,7 @@ res2 <- ggplot(resFrame2, aes(x = Ci, y = Res)) +
   geom_point() +
   facet_wrap(~Year, scales = "free_y")
 
-#FIXA SNYGGT!!
-
-grid.arrange(res1, res2)
+#grid.arrange(res1, res2)
 
 ```
 
@@ -316,7 +319,6 @@ plot_residual_for_CL_f_k2 <- function(k, ct, product){
 # plot_residual_for_CL_f_k2(k=1, ct2, 2)
 
 ```
-
 
 We continue by investigating the third chain ladder assumption. According to Mack's article it is suggested to plot three different plots of residuals. First we plot expression 1: $C_{i,k+1} - C_{i,k}f_{k0}$ against $C_{i,k}$, where $f_{k0} = \sum_{i=1}^{I-k} C_{i,k} C_{i,k+1} / \sum_{i=1}^{I-k} C_{i,k}^2$. 
 
@@ -858,6 +860,8 @@ cbind(rep(1,9),c(0:8),uc1) %>%
   kable_styling(latex_options=c("hold_position", "scale_down"))
 
 ```
+
+\newpage
 
 The main thing to take away from this is that the initial predictions seem to be, in persepctive, quite good predictors of the ultimate claim amounts.
 
